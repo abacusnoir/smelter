@@ -91,3 +91,20 @@ Add .coal files to `examples/` with:
 - Make for build orchestration
 
 The final binary is self-contained with no runtime dependencies.
+
+## Documentation Maintenance
+
+**IMPORTANT**: Always keep this documentation up-to-date after making significant changes:
+
+- **Architecture changes**: Update the "Architecture" and "Key Components" sections
+- **New CLI commands**: Update "CLI Commands Structure" and "Common Development Tasks" 
+- **New build targets**: Update "Build System" section
+- **New dependencies**: Update "Dependencies" section
+- **Major refactoring**: Review entire document for accuracy
+
+When this CLAUDE.md becomes too large (>200 lines), consider splitting into:
+- `docs/architecture.md` - Detailed system architecture
+- `docs/development.md` - Development workflows and patterns
+- `docs/testing.md` - Testing strategies and procedures
+
+Always update documentation immediately after implementing changes, not as a separate task.
