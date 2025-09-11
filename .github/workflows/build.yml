@@ -1,0 +1,194 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: macos-latest
+            platform: darwin
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install SBCL (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sbcl curl
+
+    - name: Install SBCL (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install sbcl
+
+    - name: Cache Quicklisp
+      uses: actions/cache@v4
+      with:
+        path: ~/quicklisp
+        key: ${{ runner.os }}-quicklisp-${{ hashFiles('Makefile') }}
+        restore-keys: |
+          ${{ runner.os }}-quicklisp-
+
+    - name: Install dependencies
+      run: make deps
+
+    - name: Build Smelter
+      run: make build
+
+    - name: Run tests
+      run: make test
+
+    - name: Check binary size
+      run: |
+        SIZE=$(stat -f%z smt 2>/dev/null || stat -c%s smt)
+        SIZE_MB=$((SIZE / 1024 / 1024))
+        echo "Binary size: ${SIZE_MB}MB"
+        if [ "$SIZE_MB" -gt 100 ]; then
+          echo "Warning: Binary larger than 100MB"
+          exit 1
+        fi
+
+    - name: Test startup time
+      run: |
+        # Warm up
+        ./smt --version > /dev/null
+        
+        # Measure startup time (rough measurement)
+        START=$(date +%s%N)
+        ./smt --version > /dev/null
+        END=$(date +%s%N)
+        
+        DURATION_MS=$(( (END - START) / 1000000 ))
+        echo "Startup time: ${DURATION_MS}ms"
+        
+        if [ "$DURATION_MS" -gt 5000 ]; then
+          echo "Warning: Startup time > 5 seconds"
+          exit 1
+        fi
+
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: smt-${{ matrix.platform }}-${{ github.sha }}
+        path: smt
+        retention-days: 7
+
+  build-release:
+    name: Build Release Binaries
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            target: smt-linux-x64
+          - os: macos-latest
+            platform: darwin
+            arch: x64
+            target: smt-darwin-x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+            target: smt-darwin-arm64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install SBCL (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sbcl curl
+
+    - name: Install SBCL (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install sbcl
+
+    - name: Install UPX (compression)
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          sudo apt-get install -y upx-ucl
+        else
+          brew install upx
+        fi
+
+    - name: Cache Quicklisp
+      uses: actions/cache@v4
+      with:
+        path: ~/quicklisp
+        key: ${{ runner.os }}-quicklisp-${{ hashFiles('Makefile') }}
+
+    - name: Install dependencies
+      run: make deps
+
+    - name: Build and compress binary
+      run: |
+        make build
+        make compress
+        mv smt ${{ matrix.target }}
+
+    - name: Create release archive
+      run: |
+        tar -czf ${{ matrix.target }}.tar.gz ${{ matrix.target }}
+        
+    - name: Upload release asset
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.target }}
+        path: ${{ matrix.target }}.tar.gz
+
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/*/*.tar.gz
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  homebrew:
+    name: Update Homebrew Formula
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Update Homebrew formula
+      run: |
+        echo "TODO: Update Homebrew formula with new release"
+        # This would trigger an update to your homebrew tap
+        # You'll implement this when you create the formula

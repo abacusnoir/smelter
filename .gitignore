@@ -1,0 +1,185 @@
+# Smelter .gitignore
+
+# Built binaries
+smt
+smt-*
+*.exe
+
+# SBCL build artifacts
+build/*.core
+build/*.tmp
+*.fasl
+*.fas
+*.lib
+*.dx32fsl
+*.dx64fsl
+*.lx32fsl
+*.lx64fsl
+*.x86f
+*.amd64f
+
+# Common Lisp compilation artifacts
+*.FASL
+*.fasl
+*.lisp-temp
+*.dfsl
+*.pfsl
+*.d64fsl
+*.p64fsl
+*.lx64fsl
+*.lx32fsl
+*.dx64fsl
+*.dx32fsl
+*.fx64fsl
+*.fx32fsl
+*.sx64fsl
+*.sx32fsl
+*.wx64fsl
+*.wx32fsl
+
+# Quicklisp (if installed locally)
+quicklisp/
+local-projects/
+
+# SBCL temporary files
+*.sb-fasl-tmp
+*.sbcl-tmp
+
+# Build directories
+build/temp/
+build/cache/
+*.build-temp
+
+# Release artifacts
+releases/*.tar.gz
+releases/*.zip
+releases/*.dmg
+dist/
+
+# Test artifacts
+test/temp/
+test/*.log
+test/*.tmp
+
+# Development artifacts
+*.orig
+*.bak
+*.swp
+*~
+.#*
+#*#
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+.emacs.desktop
+.emacs.desktop.lock
+*flycheck*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Runtime directories
+tmp/
+temp/
+cache/
+
+# Package manager files
+.bundle/
+node_modules/
+.npm
+.yarn-integrity
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Coverage reports
+coverage/
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Documentation build
+docs/_build/
+docs/build/
+site/
+
+# Compressed files
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.zip
+*.rar
+*.7z
+
+# Backup files
+*.backup
+*.bck
+*.old
+
+# Local configuration
+.local/
+local.conf
+local.mk
+
+# UPX compressed binaries backup
+*.~
+*.upx-backup
+
+# Git patches
+*.patch
+*.diff
+
+# Core dumps
+core
+core.*
+vgcore.*
