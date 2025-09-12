@@ -106,6 +106,21 @@ test-shebang: $(TARGET) $(EXAMPLES_DIR)/hello.coal
 	@chmod +x $(EXAMPLES_DIR)/hello.coal
 	@$(EXAMPLES_DIR)/hello.coal
 
+# Comprehensive regression test suite
+test-regression: $(TARGET)
+	@echo "Running comprehensive regression tests..."
+	@chmod +x $(TEST_DIR)/regression/run-regression-tests.sh
+	@$(TEST_DIR)/regression/run-regression-tests.sh
+
+# Skip build and run regression tests (for development)
+test-regression-quick:
+	@echo "Running regression tests (skipping rebuild)..."
+	@chmod +x $(TEST_DIR)/regression/run-regression-tests.sh
+	@SKIP_BUILD=1 $(TEST_DIR)/regression/run-regression-tests.sh
+
+# Full test suite (smoke + regression)
+test-all: test test-regression
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
@@ -139,10 +154,13 @@ info:
 	@echo "Target Binary: $(TARGET)"
 	@echo ""
 	@echo "Build Targets:"
-	@echo "  make build     - Build the executable"
-	@echo "  make test      - Run all tests"
-	@echo "  make install   - Install to /usr/local/bin"
-	@echo "  make clean     - Clean build artifacts"
+	@echo "  make build              - Build the executable"
+	@echo "  make test               - Run smoke tests"
+	@echo "  make test-regression    - Run comprehensive regression tests"
+	@echo "  make test-regression-quick - Run regression tests (skip rebuild)"
+	@echo "  make test-all           - Run all tests (smoke + regression)"
+	@echo "  make install            - Install to /usr/local/bin"
+	@echo "  make clean              - Clean build artifacts"
 
 # Help target
 help: info

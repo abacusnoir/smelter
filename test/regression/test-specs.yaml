@@ -1,0 +1,116 @@
+# Smelter Regression Test Specifications
+# Format: Each test has a type, input, expected output, and optional metadata
+# NOTE: Tests focus on currently working functionality
+
+basic_functionality_tests:
+  - name: "version_check"
+    type: "command"
+    input: "--version"
+    expected_contains: "Smelter"
+    
+  - name: "help_command"
+    type: "command" 
+    input: "--help"
+    expected_contains: "Usage:"
+
+# Tests for what currently works with our custom stdlib
+stdlib_io_tests:
+  - name: "io_println_basic"
+    type: "eval"
+    input: "(smelter.stdlib.io:io-println \"Test output\")"
+    expected_stdout: "Test output"
+    note: "Our custom I/O functions work perfectly"
+    
+  - name: "io_print_no_newline"
+    type: "eval"
+    input: "(smelter.stdlib.io:io-print \"No newline\")"
+    expected_stdout: "No newline"
+    
+stdlib_system_tests:
+  - name: "current_time_returns_number"
+    type: "eval"
+    input: "(smelter.stdlib.system:current-time-millis coalton:Unit)"
+    expected_type: "numeric"
+    note: "Should return a timestamp number"
+    
+  - name: "sleep_function_exists"
+    type: "eval"
+    input: "(smelter.stdlib.system:sleep 1)"
+    expected_return: "unit/unit"
+    note: "Sleep function should complete without error"
+
+# Tests that document current limitations (these will fail until prelude is fixed)
+known_limitations_tests:
+  - name: "arithmetic_not_working_yet"
+    type: "eval"
+    input: "(+ 2 3)"
+    expected_failure: true
+    expected_error_contains: "Unknown variable +"
+    note: "Coalton prelude not yet available - this is expected to fail"
+    
+  - name: "comparison_not_working_yet"
+    type: "eval" 
+    input: "(> 5 3)"
+    expected_failure: true
+    expected_error_contains: "Unknown variable >"
+    note: "Comparison operators not yet available"
+    
+  - name: "map_not_working_yet"
+    type: "eval"
+    input: "(map (fn (x) (* x 2)) (list 1 2 3))"
+    expected_failure: true
+    expected_error_contains: "Unknown variable"
+    note: "Higher-order functions not yet available"
+
+# Error handling tests
+error_handling_tests:
+  - name: "missing_file_error"
+    type: "script"
+    file: "nonexistent.coal"
+    expected_failure: true
+    expected_exit_code: 1
+    expected_stderr_contains: "File not found"
+    
+  - name: "invalid_syntax_error"
+    type: "eval"
+    input: "(invalid-coalton-syntax"
+    expected_failure: true
+    expected_exit_code: 1
+
+# REPL functionality tests
+repl_tests:
+  - name: "repl_basic_functionality"
+    type: "repl"
+    input: "(smelter.stdlib.io:io-println \"REPL test\")\n:quit\n"
+    expected_contains: "REPL test"
+    timeout: 5
+    
+  - name: "repl_help_command"
+    type: "repl"
+    input: ":help\n:quit\n"
+    expected_contains: "REPL"
+    timeout: 5
+
+# Script execution tests (when they work)
+script_tests:
+  - name: "simple_script_with_stdlib"
+    type: "script"
+    file: "test/regression/scripts/simple-stdlib.coal"
+    expected_stdout: |
+      Hello from script!
+      This uses our working stdlib.
+    note: "Tests script execution with working stdlib functions"
+
+# Performance benchmarks
+performance_tests:
+  - name: "startup_time_under_2_seconds"
+    type: "performance"
+    command: "--version"
+    max_time_ms: 2000
+    note: "Startup should be fast"
+    
+  - name: "binary_size_reasonable"
+    type: "performance"
+    check: "binary_size"
+    max_size_mb: 100
+    note: "Binary shouldn't be too large"

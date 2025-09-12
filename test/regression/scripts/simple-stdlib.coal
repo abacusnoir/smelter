@@ -1,0 +1,6 @@
+#!/usr/bin/env smt run
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println "Hello from script!")
+    (smelter.stdlib.io:io-println "This uses our working stdlib.")))
