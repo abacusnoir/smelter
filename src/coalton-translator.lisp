@@ -66,16 +66,21 @@
 (defun translate-for-repl (script)
   "Translate Coalton forms for REPL evaluation"
   (let ((forms (coalton-script-definitions script)))
-    (if (= (length forms) 1)
-        ;; Single expression: evaluate directly
-        (with-output-to-string (out)
-          (format out "(coalton:coalton ~S)" (first forms)))
-        ;; Multiple forms: wrap in toplevel
-        (with-output-to-string (out)
-          (format out "(coalton:coalton-toplevel~%")
-          (dolist (form forms)
-            (format out "  ~S~%" form))
-          (format out ")")))))
+    (with-output-to-string (out)
+      ;; Set up smelter.user package with stdlib access
+      (format out "(in-package :smelter.user)~%")
+      (format out "(use-package :smelter.stdlib.io :smelter.user)~%")
+      (format out "(use-package :smelter.stdlib.system :smelter.user)~%")
+      
+      (if (= (length forms) 1)
+          ;; Single expression: evaluate directly
+          (format out "(coalton:coalton ~S)" (first forms))
+          ;; Multiple forms: wrap in toplevel
+          (progn
+            (format out "(coalton:coalton-toplevel~%")
+            (dolist (form forms)
+              (format out "  ~S~%" form))
+            (format out ")"))))))
 
 (defun translate-for-script (script)
   "Translate a Coalton script for execution"
@@ -88,11 +93,11 @@
       ;; Add package setup
       (format out "(in-package :smelter.user)~%~%")
       
-      ;; Add Smelter standard library import
+      ;; Add Smelter standard library use
+      (format out ";; Import Smelter standard library~%")
+      (format out "(use-package :smelter.stdlib.io :smelter.user)~%")
+      (format out "(use-package :smelter.stdlib.system :smelter.user)~%~%")
       (format out "(coalton:coalton-toplevel~%")
-      (format out "  ;; Smelter standard library~%")
-      (format out "  (import smelter/io)~%")
-      (format out "  (import smelter/system)~%~%")
       
       ;; Add user's Coalton code
       (dolist (form coalton-forms)

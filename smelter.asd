@@ -18,6 +18,10 @@
                 :serial t
                 :components
                 ((:file "coalton-translator")
+                 (:module "stdlib"
+                  :components
+                  ((:file "smelter-io")
+                   (:file "smelter-system")))
                  (:file "cli"))))
   
   ;; Build configuration
