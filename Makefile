@@ -49,7 +49,7 @@ deps:
 		rm -f quicklisp.lisp; \
 	fi
 	@echo "Loading Coalton to cache..."
-	@$(SBCL) --eval "(ql:quickload :coalton)" --quit
+	@$(SBCL) --eval "(load \"~/quicklisp/setup.lisp\")" --eval "(ql:quickload :coalton)" --quit
 	@echo "Dependencies ready!"
 
 # Create the SBCL core with Coalton embedded
@@ -62,9 +62,9 @@ $(BUILD_DIR)/smelter.core: $(BUILD_DIR)/create-image.lisp deps
 $(TARGET): $(BUILD_DIR)/smelter.core $(SRC_DIR)/cli.lisp
 	@echo "Creating executable binary..."
 	@$(SBCL) --core $(BUILD_DIR)/smelter.core \
+	         --non-interactive \
 	         --eval "(load \"$(SRC_DIR)/cli.lisp\")" \
-	         --eval "(smelter:save-executable \"$(TARGET)\")" \
-	         --quit
+	         --eval "(smelter:save-executable \"$(TARGET)\")"
 	@echo "Built: $(TARGET) ($(shell du -h $(TARGET) | cut -f1))"
 
 # Main build target

@@ -71,18 +71,9 @@
         (unless (find-package :coalton)
           (error "Coalton not found in image"))
         
-        ;; Create user package for script execution
-        (when (find-package :smelter-user)
-          (delete-package :smelter-user))
-        
-        (defpackage #:smelter-user
-          (:use #:cl)
-          (:import-from #:coalton #:coalton-toplevel #:coalton #:declare #:define)
-          (:import-from #:coalton-prelude #:+ #:- #:* #:== #:<= #:Integer #:String #:concatenate #:List)
-          (:export #:main))
-        
-        ;; Switch to user package
-        (in-package #:smelter-user)
+        ;; The smelter.user package is already created at the top of this file
+        ;; Just ensure we can use it
+        (in-package #:smelter.user)
         t)
     (error (e)
       (smelter-error "Failed to setup Coalton environment: ~A" e))))
@@ -144,11 +135,15 @@
           ;; Reset script main
           (setf *script-main* nil)
           
-          ;; Direct evaluation for now (Coalton translation can be improved later)
-          (with-input-from-string (stream content)
-            (loop for form = (read stream nil :eof)
-                  until (eq form :eof)
-                  do (eval form))))
+          ;; Use translator to convert pure Coalton to executable form
+          (let ((translated (smelter.translator:translate-pure-coalton content :for-repl nil)))
+            ;; Read and evaluate in the correct package context
+            (let ((*package* (find-package :smelter.user)))
+              (eval (read-from-string translated))))
+          
+          ;; Call main function if it was set
+          (when *script-main*
+            (funcall *script-main*)))
         
         ;; Exit successfully
         (sb-ext:exit :code 0))
@@ -166,14 +161,22 @@
   "Evaluate a Coalton expression with translation support"
   (handler-case
       (progn
-        ;; Simple evaluation for now (Coalton integration can be improved later)
-        (let ((result (eval (read-from-string expr-string))))
+        (setup-coalton-environment)
+        
+        ;; Use translator to convert pure Coalton to executable form
+        (let* ((translated (smelter.translator:translate-pure-coalton 
+                           expr-string :for-repl t))
+               (result (let ((*package* (find-package :smelter.user)))
+                         (eval (read-from-string translated)))))
           (format t "~A~%" result))
         
         (sb-ext:exit :code 0))
     
     (error (e)
       (format *error-output* "Error evaluating expression: ~A~%" e)
+      (format *error-output* "Error type: ~A~%" (type-of e))
+      (format *error-output* "Translated code was: ~A~%" 
+              (smelter.translator:translate-pure-coalton expr-string :for-repl t))
       (sb-ext:exit :code 1))))
 
 ;;; Type checking

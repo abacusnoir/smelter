@@ -67,20 +67,28 @@
   "Translate Coalton forms for REPL evaluation"
   (let ((forms (coalton-script-definitions script)))
     (with-output-to-string (out)
-      ;; Set up smelter.user package with stdlib access
-      (format out "(in-package :smelter.user)~%")
-      (format out "(use-package :smelter.stdlib.io :smelter.user)~%")
-      (format out "(use-package :smelter.stdlib.system :smelter.user)~%")
+      ;; Set up smelter.user package with stdlib access (suppress output)
+      (format out "(progn~%")
+      (format out "  (in-package :smelter.user)~%")
+      ;; Import what we need from various Coalton packages to avoid conflicts
+      (format out "  (ignore-errors (import 'coalton-library/classes:map :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/list:filter :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/classes:fold :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/list:length :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/list:reverse :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/list:append :smelter.user))~%")
+      (format out "  (ignore-errors (use-package :smelter.stdlib.io :smelter.user))~%")
+      (format out "  (ignore-errors (use-package :smelter.stdlib.system :smelter.user))~%")
       
       (if (= (length forms) 1)
-          ;; Single expression: evaluate directly
-          (format out "(coalton:coalton ~S)" (first forms))
+          ;; Single expression: evaluate directly in coalton context
+          (format out "  (coalton:coalton ~S))" (first forms))
           ;; Multiple forms: wrap in toplevel
           (progn
-            (format out "(coalton:coalton-toplevel~%")
+            (format out "  (coalton:coalton-toplevel~%")
             (dolist (form forms)
-              (format out "  ~S~%" form))
-            (format out ")"))))))
+              (format out "    ~S~%" form))
+            (format out "  ))"))))))
 
 (defun translate-for-script (script)
   "Translate a Coalton script for execution"
@@ -90,35 +98,44 @@
                         (coalton-script-definitions script))))
     
     (with-output-to-string (out)
-      ;; Add package setup
-      (format out "(in-package :smelter.user)~%~%")
+      ;; Add package setup  
+      (format out "(progn~%")
+      (format out "  (in-package :smelter.user)~%~%")
       
-      ;; Add Smelter standard library use
-      (format out ";; Import Smelter standard library~%")
-      (format out "(use-package :smelter.stdlib.io :smelter.user)~%")
-      (format out "(use-package :smelter.stdlib.system :smelter.user)~%~%")
-      (format out "(coalton:coalton-toplevel~%")
+      ;; Add Coalton and standard library use
+      (format out "  ;; Import Coalton and standard libraries~%")
+      (format out "  (ignore-errors (import 'coalton-library/classes:map :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/list:filter :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/classes:fold :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/list:length :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/list:reverse :smelter.user))~%")
+      (format out "  (ignore-errors (import 'coalton-library/list:append :smelter.user))~%")
+      (format out "  (ignore-errors (use-package :smelter.stdlib.io :smelter.user))~%")
+      (format out "  (ignore-errors (use-package :smelter.stdlib.system :smelter.user))~%~%")
+      (format out "  (coalton:coalton-toplevel~%")
       
       ;; Add user's Coalton code
       (dolist (form coalton-forms)
-        (format out "  ~S~%" form))
-      (format out ")~%~%")
+        (format out "    ~S~%" form))
+      (format out "  )~%")
       
       ;; Generate main wrapper if main exists
       (when (coalton-script-has-main-p script)
-        (format out "(defun cl-main ()~%")
-        (format out "  \"Auto-generated main wrapper\"~%")
-        (format out "  (handler-case~%")
-        (format out "    (progn~%")
-        (format out "      (coalton:coalton (main))~%")
-        (format out "      (fresh-line)~%")
-        (format out "      (force-output))~%")
-        (format out "    (error (e)~%")
-        (format out "      (format *error-output* \"Error: ~~A~~%\" e)~%")
-        (format out "      (uiop:quit 1))))~%~%")
+        (format out "  (defun cl-main ()~%")
+        (format out "    \"Auto-generated main wrapper\"~%")
+        (format out "    (handler-case~%")
+        (format out "      (progn~%")
+        (format out "        (coalton:coalton (main))~%")
+        (format out "        (fresh-line)~%")
+        (format out "        (force-output))~%")
+        (format out "      (error (e)~%")
+        (format out "        (format *error-output* \"Error: ~~A~~%\" e)~%")
+        (format out "        (uiop:quit 1))))~%~%")
         
         ;; Set as entry point
-        (format out "(setf smelter.cli:*script-main* #'cl-main)~%")))))
+        (format out "  (setf smelter.cli:*script-main* #'cl-main)~%"))
+        
+      (format out ")~%"))))
 
 (defun translate-pure-coalton (content &key (for-repl nil))
   "Translate pure Coalton syntax to executable hybrid format"
