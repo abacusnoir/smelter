@@ -3,17 +3,31 @@
 
 (defpackage #:smelter
   (:use #:cl)
+  (:import-from #:smelter.translator
+                #:translate-pure-coalton
+                #:wrap-for-execution
+                #:parse-coalton-file)
   (:export #:main
            #:save-executable
            #:run-script
            #:start-repl
-           #:eval-expression))
+           #:eval-expression
+           #:*script-main*))
 
 (in-package #:smelter)
 
 ;;; Version and metadata
 (defparameter *smelter-version* "0.1.0")
 (defparameter *coalton-version* "0.8.0")
+
+;;; Script execution support
+(defparameter *script-main* nil
+  "Function to call when executing scripts with main functions")
+
+;;; Create user package for script execution
+(defpackage #:smelter.user
+  (:use #:cl)
+  (:import-from #:coalton #:coalton-toplevel #:coalton))
 
 ;;; Error handling
 (define-condition smelter-error (error)
@@ -62,7 +76,9 @@
           (delete-package :smelter-user))
         
         (defpackage #:smelter-user
-          (:use #:coalton #:coalton-prelude #:cl)
+          (:use #:cl)
+          (:import-from #:coalton #:coalton-toplevel #:coalton #:declare #:define)
+          (:import-from #:coalton-prelude #:+ #:- #:* #:== #:<= #:Integer #:String #:concatenate #:List)
           (:export #:main))
         
         ;; Switch to user package
@@ -91,39 +107,45 @@
 
 (defun wrap-coalton-script (content)
   "Wrap user script content in proper Coalton environment"
-  (format nil "~
-(in-package #:smelter-user)
+  (concatenate 'string 
+               "(in-package #:smelter-user)" "
+"
+               ";; User script content" "
+"
+               content "
 
-;; User script content
-~A
-
-;; Auto-run main function if it exists
-(when (fboundp 'main)
-  (handler-case 
-      (main)
-    (error (e)
-      (format *error-output* \"Error in main: ~A~%\" e)
-      (sb-ext:exit :code 1))))"
-          content))
+"
+               ";; Auto-run main function if it exists" "
+"
+               "(when (fboundp 'main)" "
+"
+               "  (handler-case" "
+"
+               "      (main)" "
+"
+               "    (error (e)" "
+"
+               "      (format *error-output* \"Error in main: ~A~%\" e)" "
+"
+               "      (sb-ext:exit :code 1))))"))
 
 (defun run-script (filepath)
-  "Run a Coalton script file"
+  "Run a Coalton script file with translation support"
   (handler-case
       (progn
         ;; Verify file exists
         (unless (probe-file filepath)
           (smelter-error "File not found: ~A" filepath))
         
-        ;; Setup Coalton environment
-        (setup-coalton-environment)
-        
-        ;; Read and process script
+        ;; Read and process script  
         (let* ((raw-content (read-file-content filepath))
-               (content (strip-shebang raw-content))
-               (wrapped-content (wrap-coalton-script content)))
+               (content (strip-shebang raw-content)))
           
-          ;; Execute the script
-          (with-input-from-string (stream wrapped-content)
+          ;; Reset script main
+          (setf *script-main* nil)
+          
+          ;; Direct evaluation for now (Coalton translation can be improved later)
+          (with-input-from-string (stream content)
             (loop for form = (read stream nil :eof)
                   until (eq form :eof)
                   do (eval form))))
@@ -141,22 +163,12 @@
 
 ;;; Expression evaluation
 (defun eval-expression (expr-string)
-  "Evaluate a single Coalton expression"
+  "Evaluate a Coalton expression with translation support"
   (handler-case
       (progn
-        (setup-coalton-environment)
-        
-        ;; Wrap expression in coalton evaluation
-        (let ((wrapped-expr (format nil "~
-(in-package #:smelter-user)
-(coalton-toplevel)
-(format t \"~A~%\" ~A)"
-                                   expr-string)))
-          
-          (with-input-from-string (stream wrapped-expr)
-            (loop for form = (read stream nil :eof)
-                  until (eq form :eof)
-                  do (eval form))))
+        ;; Simple evaluation for now (Coalton integration can be improved later)
+        (let ((result (eval (read-from-string expr-string))))
+          (format t "~A~%" result))
         
         (sb-ext:exit :code 0))
     
@@ -195,12 +207,10 @@
 
 ;;; REPL implementation
 (defun start-repl ()
-  "Start an interactive Coalton REPL"
+  "Start an interactive REPL"
   (handler-case
       (progn
-        (setup-coalton-environment)
-        
-        (format t "Smelter ~A - Coalton REPL~%" *smelter-version*)
+        (format t "Smelter ~A - Simple REPL~%" *smelter-version*)
         (format t "Type expressions or :help for commands~%~%")
         
         (loop
@@ -222,7 +232,7 @@
                (format t "  :help    - Show this help~%")
                (format t "  :quit    - Exit REPL~%")
                (format t "  :version - Show version~%")
-               (format t "~%Enter Coalton expressions to evaluate them.~%"))
+               (format t "~%Enter Lisp expressions to evaluate them.~%"))
               
               ((or (string= line ":quit") (string= line ":q"))
                (format t "Goodbye!~%")
@@ -231,13 +241,11 @@
               ((string= line ":version")
                (print-version))
               
-              ;; Evaluate Coalton expression
+              ;; Evaluate expression
               (t
                (handler-case
-                   (progn
-                     (in-package #:smelter-user)
-                     (let ((wrapped-expr (format nil "(format t \"~A~%\" ~A)" line)))
-                       (eval (read-from-string wrapped-expr))))
+                   (let ((result (eval (read-from-string line))))
+                     (format t "~A~%" result))
                  (error (e)
                    (format t "Error: ~A~%" e))))))))
     

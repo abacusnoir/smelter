@@ -1,0 +1,15 @@
+#!/usr/bin/env smt run
+;; Pure Coalton syntax test script
+
+declare add-numbers (Integer -> Integer -> Integer)
+define (add-numbers x y)
+  (+ x y)
+
+declare greet (String -> String)
+define (greet name)
+  (concatenate "Hello, " name "!")
+
+define main
+  (progn
+    (format t "~A~%" (add-numbers 5 3))
+    (format t "~A~%" (greet "Coalton")))
