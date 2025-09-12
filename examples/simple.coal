@@ -1,0 +1,15 @@
+#!/usr/bin/env smt run
+;;; Simple test script for Smelter
+
+(defun greet (name)
+  "Simple greeting function"
+  (concatenate 'string "Hello, " name "!"))
+
+(defun main ()
+  "Main entry point"
+  (format t "~A~%" (greet "Smelter"))
+  (format t "2 + 3 = ~A~%" (+ 2 3))
+  (format t "Simple test completed successfully!~%"))
+
+;; Auto-run main
+(main)
