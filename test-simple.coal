@@ -1,4 +1,12 @@
 #!/usr/bin/env smt run
 
-(define main
-  (smelter.stdlib.io:io-println "Hello from pure Coalton!"))
+(declare add-two (Integer -> Integer))
+(define (add-two x)
+  (+ x 2))
+
+(declare test-equality (Integer -> Integer -> Boolean))
+(define (test-equality x y)
+  (== x y))
+
+(declare main Unit)
+(define main unit)

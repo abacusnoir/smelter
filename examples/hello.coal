@@ -6,7 +6,7 @@
 (coalton-toplevel
   (declare greet (String -> String))
   (define (greet name)
-    (concatenate "Hello, " name "!")))
+    (<> "Hello, " (<> name "!"))))
 
 ;; Define a factorial function to show recursion and arithmetic
 (coalton-toplevel

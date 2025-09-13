@@ -2,12 +2,11 @@
 
 (declare greet (String -> String))
 (define (greet name)
-  (concatenate "Hello, " name "!"))
+  (<> "Hello, " (<> name "!")))
 
 (declare show-math (Integer -> Integer -> String)) 
 (define (show-math x y)
-  (concatenate 
-    (show x) " + " (show y) " = " (show (+ x y))))
+  (<> (show x) (<> " + " (<> (show y) (<> " = " (show (+ x y)))))))
 
 (declare factorial (Integer -> Integer))
 (define (factorial n)
@@ -19,4 +18,4 @@
     (smelter.stdlib.io:io-println (greet "Pure Coalton"))
     (smelter.stdlib.io:io-println (show-math 2 3))
     (smelter.stdlib.io:io-println 
-      (concatenate "Factorial 5 = " (show (factorial 5))))))
+      (<> "Factorial 5 = " (show (factorial 5))))))

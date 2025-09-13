@@ -118,3 +118,4 @@ When this CLAUDE.md becomes too large (>200 lines), consider splitting into:
 
 Always update documentation immediately after implementing changes, not as a separate task.
 - Add a docs/ entry for each achievement by you in terms of implementing a new feature, and link to it from CLAUDE.md
+- Each of these responses you give me at the end, should be logged somewhere. I suggest pasting them in `responses/`. Don't link to them from anywhere, but keep them all there.
