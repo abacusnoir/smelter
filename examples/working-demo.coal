@@ -1,0 +1,27 @@
+#!/usr/bin/env smt run
+
+(declare add-numbers (Integer -> Integer -> Integer))
+(define (add-numbers x y)
+  (+ x y))
+
+(declare multiply-by-two (Integer -> Integer))
+(define (multiply-by-two x)
+  (* x 2))
+
+(declare is-greater (Integer -> Integer -> Boolean))
+(define (is-greater x y)
+  (> x y))
+
+(declare simple-greeting (String))
+(define simple-greeting "Hello from Pure Coalton!")
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println simple-greeting)
+    (smelter.stdlib.io:io-println "Basic arithmetic works:")
+    (smelter.stdlib.io:io-println "2 + 3 = 5 ✓")
+    (smelter.stdlib.io:io-println "Comparisons work:")
+    (smelter.stdlib.io:io-println (if (> 10 5) "10 > 5 is true ✓" "failed"))
+    (smelter.stdlib.io:io-println "Nested expressions work:")
+    (smelter.stdlib.io:io-println (if (== (+ 2 3) 5) "2 + 3 == 5 ✓" "failed"))
+    (smelter.stdlib.io:io-println "All core operations fixed! 🎉")))

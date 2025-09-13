@@ -1,0 +1,25 @@
+#!/usr/bin/env smt run
+
+(declare factorial (Integer -> Integer))
+(define (factorial n)
+  (if (== n 0)
+      1
+      (* n (factorial (- n 1)))))
+
+(declare is-even (Integer -> Boolean))
+(define (is-even n)
+  (== (mod n 2) 0))
+
+(declare greeting (String -> String))
+(define (greeting name)
+  (<> "Hello, " (<> name "!")))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println (greeting "Pure Coalton"))
+    (smelter.stdlib.io:io-println (<> "2 + 3 = " (show (+ 2 3))))
+    (smelter.stdlib.io:io-println (<> "5! = " (show (factorial 5))))
+    (smelter.stdlib.io:io-println 
+      (if (is-even 4) "4 is even" "4 is odd"))
+    (smelter.stdlib.io:io-println 
+      (<> "10 > 5 is " (if (> 10 5) "true" "false")))))
