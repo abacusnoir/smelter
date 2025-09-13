@@ -1,0 +1,33 @@
+#!/usr/bin/env smt run
+
+(coalton-toplevel
+  ;; Test lambda/fn syntax
+  (declare add-two (Integer -> Integer))
+  (define add-two (fn (x) (+ x 2)))
+  
+  ;; Test map
+  (declare test-map (List Integer -> List Integer))
+  (define (test-map xs)
+    (map add-two xs))
+  
+  ;; Test fold
+  (declare sum-list (List Integer -> Integer))
+  (define (sum-list xs)
+    (fold + 0 xs))
+)
+
+(defun main ()
+  "Test higher-order functions"
+  (format t "Testing Coalton higher-order functions~%")
+  
+  ;; Test lambda
+  (format t "add-two 5 = ~A~%" 
+          (coalton:coalton (add-two 5)))
+  
+  ;; Test map
+  (format t "map add-two [1,2,3] = ~A~%" 
+          (coalton:coalton (test-map (list 1 2 3))))
+  
+  ;; Test fold
+  (format t "sum [1,2,3,4] = ~A~%" 
+          (coalton:coalton (sum-list (list 1 2 3 4)))))

@@ -1,0 +1,4 @@
+#!/usr/bin/env smt run
+
+(define main
+  (smelter.stdlib.io:io-println "Hello from pure Coalton!"))

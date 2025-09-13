@@ -1,0 +1,26 @@
+#!/usr/bin/env smt run
+
+;; Test higher-order functions with correct Coalton syntax
+
+(coalton-toplevel
+  ;; Simple lambda function test
+  (declare add-one (Integer -> Integer))
+  (define add-one (fn (x) (+ x 1)))
+  
+  ;; Test with list operations
+  (declare test-numbers (List Integer))
+  (define test-numbers (list 1 2 3 4 5))
+)
+
+(defun main ()
+  "Test Coalton higher-order functions"
+  (format t "Testing Coalton list operations~%")
+  
+  ;; Test lambda
+  (format t "add-one 5 = ~A~%" 
+          (coalton:coalton (add-one 5)))
+  
+  ;; Test list creation
+  (format t "test-numbers = ~A~%" 
+          (coalton:coalton test-numbers))
+)
