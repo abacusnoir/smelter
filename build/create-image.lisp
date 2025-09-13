@@ -37,7 +37,9 @@
       ;; Load Smelter components directly  
       (format t "Loading Smelter components...~%")
       (let ((cwd (uiop:getcwd)))
+        ;; Skip preprocessor - using simplified approach
         (load (merge-pathnames "src/coalton-translator.lisp" cwd))
+        (load (merge-pathnames "src/stdlib/smelter-prelude.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-io.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-system.lisp" cwd))
         (load (merge-pathnames "src/cli.lisp" cwd)))
@@ -45,6 +47,8 @@
       ;; Verify all packages are loaded
       (unless (find-package :smelter.translator)
         (error "Smelter translator package not found"))
+      (unless (find-package :smelter.stdlib.prelude)
+        (error "Smelter stdlib.prelude package not found"))
       (unless (find-package :smelter.stdlib.io)
         (error "Smelter stdlib.io package not found"))
       (unless (find-package :smelter.stdlib.system)
