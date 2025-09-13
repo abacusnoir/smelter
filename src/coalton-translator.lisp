@@ -29,27 +29,26 @@
 
 (defun preprocess-list-syntax (form)
   "Transform (list ...) syntax into Coalton-compatible cons chains"
-  (cond
-    ;; Empty list: (list) -> nil
-    ((equal form '(list)) (intern "NIL" :keyword))
-    
-    ;; List with elements: (list 1 2 3) -> (cons 1 (cons 2 (cons 3 nil)))
-    ((and (listp form) (eq (first form) (intern "LIST" :cl-user)))
-     (let ((elements (rest form)))
-       (if (null elements)
-           (intern "NIL" :keyword)
-           (reduce (lambda (elem acc)
-                    `(,(intern "CONS" :keyword) ,(preprocess-list-syntax elem) ,acc))
-                   elements
-                   :from-end t
-                   :initial-value (intern "NIL" :keyword)))))
-    
-    ;; Process nested forms recursively
-    ((listp form)
-     (mapcar #'preprocess-list-syntax form))
-    
-    ;; Leave atoms unchanged
-    (t form)))
+  (labels ((make-coalton-list (elements)
+             (if (null elements)
+                 'coalton-user::nil
+                 `(coalton-user::cons 
+                   ,(preprocess-list-syntax (first elements))
+                   ,(make-coalton-list (rest elements))))))
+    (cond
+      ;; Empty list: (list) -> nil
+      ((equal form '(list)) 'coalton-user::nil)
+      
+      ;; List with elements: (list 1 2 3) -> (cons 1 (cons 2 (cons 3 nil)))
+      ((and (listp form) (eq (first form) (intern "LIST" :cl-user)))
+       (make-coalton-list (rest form)))
+      
+      ;; Process nested forms recursively
+      ((listp form)
+       (mapcar #'preprocess-list-syntax form))
+      
+      ;; Leave atoms unchanged
+      (t form))))
 
 (defun parse-coalton-file (content)
   "Parse pure Coalton content into structured forms"
