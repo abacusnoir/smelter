@@ -21,11 +21,35 @@
 
 (defun read-all-forms (content)
   "Read all forms from a string containing Coalton code"
-  (let ((*package* (find-package :coalton-user)))
+  (let ((*package* (find-package :cl-user)))
     (with-input-from-string (stream content)
       (loop for form = (read stream nil :eof)
             until (eq form :eof)
-            collect form))))
+            collect (preprocess-list-syntax form)))))
+
+(defun preprocess-list-syntax (form)
+  "Transform (list ...) syntax into Coalton-compatible cons chains"
+  (cond
+    ;; Empty list: (list) -> nil
+    ((equal form '(list)) (intern "NIL" :keyword))
+    
+    ;; List with elements: (list 1 2 3) -> (cons 1 (cons 2 (cons 3 nil)))
+    ((and (listp form) (eq (first form) (intern "LIST" :cl-user)))
+     (let ((elements (rest form)))
+       (if (null elements)
+           (intern "NIL" :keyword)
+           (reduce (lambda (elem acc)
+                    `(,(intern "CONS" :keyword) ,(preprocess-list-syntax elem) ,acc))
+                   elements
+                   :from-end t
+                   :initial-value (intern "NIL" :keyword)))))
+    
+    ;; Process nested forms recursively
+    ((listp form)
+     (mapcar #'preprocess-list-syntax form))
+    
+    ;; Leave atoms unchanged
+    (t form)))
 
 (defun parse-coalton-file (content)
   "Parse pure Coalton content into structured forms"

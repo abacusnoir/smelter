@@ -29,7 +29,6 @@
     (reverse . "coalton-library/list:reverse")
     (head . "coalton-library/list:head")
     (tail . "coalton-library/list:tail")
-    (list . "coalton-library/list:list")
     ;; String operations
     (concatenate . "coalton-library/string:concat")))
 
