@@ -32,6 +32,23 @@
       (unless (find-package :coalton-prelude)
         (error "Coalton-prelude package not found"))
       
+      ;; Set up coalton-user package with proper prelude imports
+      (format t "Setting up coalton-user package...~%")
+      (unless (find-package :coalton-user)
+        (defpackage :coalton-user
+          (:use :cl)
+          (:import-from :coalton-prelude
+                        ;; Import core arithmetic and comparison operators
+                        #:+
+                        #:-
+                        #:*
+                        #:/
+                        #:==
+                        #:<
+                        #:>
+                        #:<=
+                        #:>=)))
+      
       (format t "Coalton loaded successfully.~%")
       
       ;; Load Smelter components directly  

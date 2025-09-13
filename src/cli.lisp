@@ -164,10 +164,18 @@
         (setup-coalton-environment)
         
         ;; Use translator to convert pure Coalton to executable form
-        (let* ((translated (smelter.translator:translate-pure-coalton 
-                           expr-string :for-repl t))
-               (result (let ((*package* (find-package :smelter.user)))
-                         (eval (read-from-string translated)))))
+        ;; But since we're setting the package context, generate minimal code
+        (let* ((script (smelter.translator:parse-coalton-file expr-string))
+               (forms (smelter.translator::coalton-script-definitions script))
+               (coalton-form (if (= (length forms) 1)
+                               `(coalton:coalton ,(first forms))
+                               `(coalton:coalton-toplevel ,@forms)))
+               (result (progn
+                         ;; Ensure coalton-user has the necessary imports
+                         (ignore-errors (use-package :smelter.stdlib.io :coalton-user))
+                         (ignore-errors (use-package :smelter.stdlib.system :coalton-user))
+                         (let ((*package* (find-package :coalton-user)))
+                           (eval coalton-form)))))
           (format t "~A~%" result))
         
         (sb-ext:exit :code 0))
@@ -175,8 +183,12 @@
     (error (e)
       (format *error-output* "Error evaluating expression: ~A~%" e)
       (format *error-output* "Error type: ~A~%" (type-of e))
-      (format *error-output* "Translated code was: ~A~%" 
-              (smelter.translator:translate-pure-coalton expr-string :for-repl t))
+      (format *error-output* "Generated form was: ~A~%" 
+              (let* ((script (smelter.translator:parse-coalton-file expr-string))
+                     (forms (smelter.translator::coalton-script-definitions script)))
+                (if (= (length forms) 1)
+                    `(coalton:coalton ,(first forms))
+                    `(coalton:coalton-toplevel ,@forms))))
       (sb-ext:exit :code 1))))
 
 ;;; Type checking
