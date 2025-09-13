@@ -112,6 +112,33 @@ test-regression: $(TARGET)
 	@chmod +x $(TEST_DIR)/regression/run-regression-tests.sh
 	@$(TEST_DIR)/regression/run-regression-tests.sh
 
+# Install adapter dependencies
+install-deps:
+	@echo "Installing adapter dependencies..."
+	@$(SBCL) --eval "(load \"~/quicklisp/setup.lisp\")" \
+	         --eval "(ql:quickload '(drakma st-json split-sequence cl-ppcre flexi-streams uiop))" \
+	         --quit
+
+# Build Smelter with adapters included
+build-adapters: install-deps
+	@echo "Building Smelter with adapters..."
+	@$(SBCL) --eval "(load \"~/quicklisp/setup.lisp\")" \
+	         --load $(BUILD_DIR)/build-adapters.lisp \
+	         --eval "(build-adapters-image)" \
+	         --quit
+
+# Test adapter functionality
+test-adapters: build-adapters
+	@echo "Testing adapter functionality..."
+	@chmod +x $(TEST_DIR)/adapter-tests.coal
+	@./$(TARGET) run $(TEST_DIR)/adapter-tests.coal
+
+# Test GitHub stats example
+test-example: build-adapters
+	@echo "Testing GitHub stats example..."
+	@chmod +x $(EXAMPLES_DIR)/github-stats.coal
+	@./$(TARGET) run $(EXAMPLES_DIR)/github-stats.coal --username torvalds --verbose --output /tmp/test-stats.txt
+
 # Skip build and run regression tests (for development)
 test-regression-quick:
 	@echo "Running regression tests (skipping rebuild)..."
@@ -159,6 +186,10 @@ info:
 	@echo "  make test-regression    - Run comprehensive regression tests"
 	@echo "  make test-regression-quick - Run regression tests (skip rebuild)"
 	@echo "  make test-all           - Run all tests (smoke + regression)"
+	@echo "  make install-deps       - Install adapter dependencies"
+	@echo "  make build-adapters     - Build Smelter with adapters"
+	@echo "  make test-adapters      - Test adapter functionality"
+	@echo "  make test-example       - Test GitHub stats example"
 	@echo "  make install            - Install to /usr/local/bin"
 	@echo "  make clean              - Clean build artifacts"
 
