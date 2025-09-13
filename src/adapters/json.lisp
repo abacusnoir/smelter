@@ -43,7 +43,7 @@
              cl:t))
         (cl:error (e)
           (cl:values
-           (cl:make-instance 'coalton:Err
+           (cl:make-instance 'coalton-prelude:Err
                              :err (cl:make-instance 'ParseError 
                                                     :string (cl:format cl:nil "~A" e)))
            cl:t)))))
@@ -55,13 +55,13 @@
       (cl:cond
         ((cl:null val) JSONNull)
         ((cl:eq val cl:t) (JSONBool True))
-        ((cl:eq val 'st-json:json-false) (JSONBool False))
+        ((cl:eq val :false) (JSONBool False))
         ((cl:numberp val) (JSONNumber (cl:coerce val 'cl:double-float)))
         ((cl:stringp val) (JSONString val))
         ((cl:listp val)
          (cl:if (cl:every (cl:lambda (x) (cl:and (cl:consp x) (cl:stringp (cl:car x)))) val)
                 (JSONObject (cl:mapcar (cl:lambda (pair)
-                                         (cl:make-instance 'coalton:Tuple 
+                                         (cl:make-instance 'coalton-prelude:Tuple 
                                                            :fst (cl:car pair)
                                                            :snd (lisp-value-to-json-value (cl:cdr pair))))
                                        val))
@@ -74,15 +74,15 @@
     (match val
       ((JSONNull) cl:nil)
       ((JSONBool True) cl:t)
-      ((JSONBool False) 'st-json:json-false)
+      ((JSONBool False) :false)
       ((JSONNumber n) n)
       ((JSONString s) s)
       ((JSONArray arr) (lisp cl:list (arr)
                          (cl:mapcar (cl:lambda (v) (json-value-to-lisp-value v)) arr)))
       ((JSONObject obj) (lisp cl:list (obj)
                           (cl:mapcar (cl:lambda (pair)
-                                      (cl:cons (coalton:fst pair)
-                                               (json-value-to-lisp-value (coalton:snd pair))))
+                                      (cl:cons (coalton-prelude:fst pair)
+                                               (json-value-to-lisp-value (coalton-prelude:snd pair))))
                                      obj)))))
 
   (declare stringify-json (JSONValue -> String))
