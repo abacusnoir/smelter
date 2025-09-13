@@ -61,10 +61,10 @@ $(BUILD_DIR)/smelter.core: $(BUILD_DIR)/create-image.lisp deps
 # Build the executable binary
 $(TARGET): $(BUILD_DIR)/smelter.core $(SRC_DIR)/cli.lisp
 	@echo "Creating executable binary..."
-	@$(SBCL) --core $(BUILD_DIR)/smelter.core \
-	         --non-interactive \
-	         --eval "(load \"$(SRC_DIR)/cli.lisp\")" \
-	         --eval "(smelter:save-executable \"$(TARGET)\")"
+	@sbcl --core $(BUILD_DIR)/smelter.core \
+	      --non-interactive --no-userinit --no-sysinit \
+	      --eval "(load \"$(SRC_DIR)/cli.lisp\")" \
+	      --eval "(smelter:save-executable \"$(TARGET)\")"
 	@echo "Built: $(TARGET) ($(shell du -h $(TARGET) | cut -f1))"
 
 # Main build target

@@ -97,6 +97,9 @@ The final binary is self-contained with no runtime dependencies.
 ### Implemented Features
 - **[Simplified Coalton-Toplevel Implementation](docs/coalton-toplevel-implementation.md)** - Pure Coalton support using native Coalton contexts instead of preprocessing
 
+### Known Limitations
+- **[SBCL Runtime Limitations](docs/sbcl-runtime-limitations.md)** - CLI argument handling limitations inherited from SBCL
+
 ## Documentation Maintenance
 
 **IMPORTANT**: Always keep this documentation up-to-date after making significant changes:

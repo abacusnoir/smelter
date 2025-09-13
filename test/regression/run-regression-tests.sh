@@ -147,7 +147,8 @@ test_script() {
     ((TOTAL_TESTS++))
     log_info "Testing script: $name"
     
-    if [[ ! -f "$script_file" ]]; then
+    # Only check file existence if we expect the test to succeed
+    if [[ ! -f "$script_file" && "$expected_failure" != "true" ]]; then
         log_failure "$name - Script file not found: $script_file"
         return
     fi
@@ -193,7 +194,15 @@ test_repl() {
     
     local output
     set +e
-    output=$(echo -e "$input" | timeout "$timeout" $BINARY repl 2>&1)
+    # Use gtimeout if available, otherwise skip timeout (macOS compatibility)
+    if command -v timeout >/dev/null 2>&1; then
+        output=$(echo -e "$input" | timeout "$timeout" $BINARY repl 2>&1)
+    elif command -v gtimeout >/dev/null 2>&1; then
+        output=$(echo -e "$input" | gtimeout "$timeout" $BINARY repl 2>&1)
+    else
+        # No timeout available - run without timeout (may hang on errors)
+        output=$(echo -e "$input" | $BINARY repl 2>&1)
+    fi
     local exit_code=$?
     set -e
     

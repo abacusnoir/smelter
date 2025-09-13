@@ -326,4 +326,5 @@
   (sb-ext:save-lisp-and-die filename
                             :executable t
                             :toplevel #'main
-                            :compression t))
+                            :compression t
+                            :save-runtime-options nil))
