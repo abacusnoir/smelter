@@ -92,6 +92,11 @@ Add .coal files to `examples/` with:
 
 The final binary is self-contained with no runtime dependencies.
 
+## Feature Documentation
+
+### Implemented Features
+- **[Simplified Coalton-Toplevel Implementation](docs/coalton-toplevel-implementation.md)** - Pure Coalton support using native Coalton contexts instead of preprocessing
+
 ## Documentation Maintenance
 
 **IMPORTANT**: Always keep this documentation up-to-date after making significant changes:
@@ -101,6 +106,7 @@ The final binary is self-contained with no runtime dependencies.
 - **New build targets**: Update "Build System" section
 - **New dependencies**: Update "Dependencies" section
 - **Major refactoring**: Review entire document for accuracy
+- **New features**: Add documentation in `docs/` and link from "Feature Documentation" section
 
 When this CLAUDE.md becomes too large (>200 lines), consider splitting into:
 - `docs/architecture.md` - Detailed system architecture
@@ -108,3 +114,4 @@ When this CLAUDE.md becomes too large (>200 lines), consider splitting into:
 - `docs/testing.md` - Testing strategies and procedures
 
 Always update documentation immediately after implementing changes, not as a separate task.
+- Add a docs/ entry for each achievement by you in terms of implementing a new feature, and link to it from CLAUDE.md

@@ -75,12 +75,19 @@
       (format out "  (ignore-errors (use-package :smelter.stdlib.io :smelter.user))~%")
       (format out "  (ignore-errors (use-package :smelter.stdlib.system :smelter.user))~%")
       
-      ;; ALWAYS use coalton-toplevel, even for single expressions
-      ;; This ensures operators like +, -, *, /, ==, if etc. work correctly
-      (format out "  (coalton:coalton-toplevel~%")
-      (dolist (form forms)
-        (format out "    ~S~%" form))
-      (format out "  ))"))))
+      ;; For single expressions, use coalton:coalton
+      ;; For multiple forms or definitions, use coalton-toplevel
+      (if (and (= (length forms) 1)
+               (not (and (listp (first forms))
+                        (eq (first (first forms)) 'define))))
+          ;; Single expression - use coalton
+          (format out "  (coalton:coalton ~S))" (first forms))
+          ;; Multiple forms or definitions - use toplevel
+          (progn
+            (format out "  (coalton:coalton-toplevel~%")
+            (dolist (form forms)
+              (format out "    ~S~%" form))
+            (format out "  ))"))))))
 
 (defun translate-for-script-simple (script)
   "Simplified script translation using coalton-toplevel"

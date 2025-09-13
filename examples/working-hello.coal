@@ -1,0 +1,9 @@
+#!/usr/bin/env smt run
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println "Hello from working pure Coalton!")
+    (smelter.stdlib.io:io-println "This demonstrates our translator works!")
+    (smelter.stdlib.io:io-print "Current time: ")
+    (smelter.stdlib.io:io-println 
+      (show (smelter.stdlib.system:current-time-millis coalton:Unit)))))
