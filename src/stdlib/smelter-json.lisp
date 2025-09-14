@@ -1,4 +1,4 @@
-;;;; smelter-json.lisp - JSON adapter for Smelter (simplified)
+;;;; smelter-json.lisp - JSON adapter for Smelter (working version)
 
 (cl:defpackage #:smelter/json
   (:use #:coalton #:coalton-prelude)
@@ -35,7 +35,7 @@
     (TypeError String)))
 
 (cl:defun %parse-json-simple (json-str)
-  "Simple JSON parse - just extract basic types"
+  "Simple JSON parse - primitives only for now"
   (cl:handler-case
       (cl:let ((parsed (st-json:read-json json-str)))
         (cl:cond
