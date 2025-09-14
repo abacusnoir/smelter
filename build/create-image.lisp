@@ -66,6 +66,8 @@
         (load (merge-pathnames "src/stdlib/smelter-io.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-system.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-file.lisp" cwd))
+        (load (merge-pathnames "src/stdlib/smelter-http.lisp" cwd))
+        (load (merge-pathnames "src/stdlib/smelter-json.lisp" cwd))
         
         ;; Load adapters (testing JSON adapter first)
         (format t "Loading Smelter JSON adapter...~%")
