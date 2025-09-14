@@ -65,6 +65,7 @@
         (load (merge-pathnames "src/stdlib/smelter-prelude.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-io.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-system.lisp" cwd))
+        (load (merge-pathnames "src/stdlib/smelter-file.lisp" cwd))
         
         ;; Load adapters (testing JSON adapter first)
         (format t "Loading Smelter JSON adapter...~%")
@@ -85,6 +86,8 @@
         (error "Smelter stdlib.io package not found"))
       (unless (find-package :smelter.stdlib.system)
         (error "Smelter stdlib.system package not found"))
+      (unless (find-package :smelter.stdlib.file)
+        (error "Smelter stdlib.file package not found"))
       (unless (find-package :smelter)
         (error "Smelter main package not found"))
       

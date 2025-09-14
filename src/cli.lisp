@@ -24,10 +24,7 @@
 (defparameter *script-main* nil
   "Function to call when executing scripts with main functions")
 
-;;; Create user package for script execution
-(defpackage #:smelter.user
-  (:use #:cl)
-  (:import-from #:coalton #:coalton-toplevel #:coalton))
+;;; User package is already created in build/create-image.lisp as :coalton-user
 
 ;;; Error handling
 (define-condition smelter-error (error)
@@ -71,9 +68,11 @@
         (unless (find-package :coalton)
           (error "Coalton not found in image"))
         
-        ;; The smelter.user package is already created at the top of this file
-        ;; Just ensure we can use it
-        (in-package #:smelter.user)
+        ;; The coalton-user package is created in build/create-image.lisp  
+        ;; Just ensure it exists and is usable
+        (unless (find-package :coalton-user)
+          (error "coalton-user package not found"))
+        
         t)
     (error (e)
       (smelter-error "Failed to setup Coalton environment: ~A" e))))
@@ -99,7 +98,7 @@
 (defun wrap-coalton-script (content)
   "Wrap user script content in proper Coalton environment"
   (concatenate 'string 
-               "(in-package #:smelter-user)" "
+               "(in-package #:coalton-user)" "
 "
                ";; User script content" "
 "
@@ -138,7 +137,7 @@
           ;; Use translator to convert pure Coalton to executable form
           (let ((translated (smelter.translator:translate-pure-coalton content :for-repl nil)))
             ;; Read and evaluate in the correct package context
-            (let ((*package* (find-package :smelter.user)))
+            (let ((*package* (find-package :coalton-user)))
               (eval (read-from-string translated))))
           
           ;; Call main function if it was set
