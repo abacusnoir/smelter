@@ -158,37 +158,23 @@
 
 ;;; Expression evaluation
 (defun eval-expression (expr-string)
-  "Evaluate a Coalton expression with translation support"
+  "Evaluate a Coalton expression - Critical: Set package BEFORE reading the string"
   (handler-case
       (progn
         (setup-coalton-environment)
         
-        ;; Use translator to convert pure Coalton to executable form
-        ;; But since we're setting the package context, generate minimal code
-        (let* ((script (smelter.translator:parse-coalton-file expr-string))
-               (forms (smelter.translator::coalton-script-definitions script))
-               (coalton-form (if (= (length forms) 1)
-                               `(coalton:coalton ,(first forms))
-                               `(coalton:coalton-toplevel ,@forms)))
-               (result (progn
-                         ;; Ensure coalton-user has the necessary imports
-                         (ignore-errors (use-package :smelter.stdlib.io :coalton-user))
-                         (ignore-errors (use-package :smelter.stdlib.system :coalton-user))
-                         (let ((*package* (find-package :coalton-user)))
-                           (eval coalton-form)))))
-          (format t "~A~%" result))
+        ;; Critical: Set package context BEFORE reading the form
+        ;; This ensures symbols are interned in the correct package
+        (let ((*package* (find-package :coalton-user)))
+          (let* ((form (read-from-string expr-string))  ; Read IN coalton-user package
+                 (wrapped `(coalton:coalton ,form))     ; Wrap for Coalton evaluation
+                 (result (eval wrapped)))               ; Evaluate in same package
+            (format t "~A~%" result)))
         
         (sb-ext:exit :code 0))
     
     (error (e)
-      (format *error-output* "Error evaluating expression: ~A~%" e)
-      (format *error-output* "Error type: ~A~%" (type-of e))
-      (format *error-output* "Generated form was: ~A~%" 
-              (let* ((script (smelter.translator:parse-coalton-file expr-string))
-                     (forms (smelter.translator::coalton-script-definitions script)))
-                (if (= (length forms) 1)
-                    `(coalton:coalton ,(first forms))
-                    `(coalton:coalton-toplevel ,@forms))))
+      (format *error-output* "Error: ~A~%" e)
       (sb-ext:exit :code 1))))
 
 ;;; Type checking
