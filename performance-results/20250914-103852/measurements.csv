@@ -1,0 +1,11 @@
+name,avg_ms,min_ms,max_ms
+Shell true command,6.000,5.915000,7.699000
+Shell echo,6.000,5.842000,6.854000
+SBCL minimal,22.000,21.471000,24.410000
+SBCL with sysinit,22.000,22.000000,24.606000
+SBCL with userinit,168.000,164.945000,174.288000
+Smelter nil,87.000,85.659000,91.709000
+Smelter arithmetic,87.000,84.481000,91.618000
+Python3 baseline,28.000,27.596000,30.306000
+Ruby baseline,57.000,56.662000,58.734000
+Node.js baseline,31.000,30.611000,31.918000

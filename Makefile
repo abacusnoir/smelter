@@ -168,6 +168,54 @@ release: $(TARGET) compress
 	@tar -czf releases/$(BINARY_NAME).tar.gz $(TARGET)
 	@echo "Created: releases/$(BINARY_NAME).tar.gz"
 
+# Performance-optimized builds
+compile-all:
+	@echo "Pre-compiling all sources to FASL..."
+	@sbcl --no-userinit --no-sysinit \
+	      --load build/fast-core.lisp \
+	      --eval "(smelter-fast::compile-all-sources)" \
+	      --quit
+
+build-fast: compile-all
+	@echo "Building fast Smelter binary..."
+	@sbcl --no-userinit --no-sysinit \
+	      --load build/fast-core.lisp \
+	      --eval "(smelter-fast::build-fast-image)" \
+	      --quit
+	@echo "Optimizing binary..."
+	@strip smt-fast
+	@if command -v upx >/dev/null 2>&1; then \
+		upx --best smt-fast; \
+	fi
+	@echo "Binary created: smt-fast"
+	@ls -lh smt-fast
+	@echo "Testing startup time..."
+	@time ./smt-fast eval '(+ 1 2)'
+
+build-minimal:
+	@echo "Building minimal test binary..."
+	@sbcl --no-userinit --no-sysinit \
+	      --load build/fast-core-simple.lisp \
+	      --eval "(build-minimal-test-image)" \
+	      --quit
+	@strip smt-minimal
+	@upx --best smt-minimal 2>/dev/null || true
+	@echo "Minimal binary created: smt-minimal"
+	@ls -lh smt-minimal
+	@echo "Testing minimal startup..."
+	@time ./smt-minimal eval '(+ 1 2)'
+
+test-performance: build-fast build-minimal
+	@echo "=== PERFORMANCE COMPARISON ==="
+	@printf "%-15s | %s\n" "Binary" "Startup Time (avg of 5 runs)"
+	@printf "%-15s | %s\n" "---------------" "------------------------"
+	@printf "%-15s | " "smt-original"
+	@bash -c 'total=0; for i in {1..5}; do start=$$(date +%s%N); ./smt eval "(+ 1 2)" >/dev/null 2>&1; end=$$(date +%s%N); ms=$$(echo "scale=1; ($${end} - $${start}) / 1000000" | bc); total=$$(echo "$${total} + $${ms}" | bc); done; echo "scale=1; $${total} / 5" | bc'
+	@printf "%-15s | " "smt-fast"
+	@bash -c 'total=0; for i in {1..5}; do start=$$(date +%s%N); ./smt-fast eval "(+ 1 2)" >/dev/null 2>&1; end=$$(date +%s%N); ms=$$(echo "scale=1; ($${end} - $${start}) / 1000000" | bc); total=$$(echo "$${total} + $${ms}" | bc); done; echo "scale=1; $${total} / 5" | bc'
+	@printf "%-15s | " "smt-minimal"
+	@bash -c 'total=0; for i in {1..5}; do start=$$(date +%s%N); ./smt-minimal eval "(+ 1 2)" >/dev/null 2>&1; end=$$(date +%s%N); ms=$$(echo "scale=1; ($${end} - $${start}) / 1000000" | bc); total=$$(echo "$${total} + $${ms}" | bc); done; echo "scale=1; $${total} / 5" | bc'
+
 # Development: quick rebuild for testing
 dev: clean build test-version test-eval
 
