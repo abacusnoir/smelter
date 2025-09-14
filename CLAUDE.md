@@ -98,9 +98,18 @@ The final binary is self-contained with no runtime dependencies.
 - **[Simplified Coalton-Toplevel Implementation](docs/coalton-toplevel-implementation.md)** - Pure Coalton support using native Coalton contexts instead of preprocessing
 - **[Official Coalton Migration Patterns](docs/coalton-migration-patterns.md)** - Migrated stdlib to use official Coalton library binding patterns
 - **[HTTP and JSON Adapters](docs/http-json-adapters.md)** - Network and JSON capabilities for API interaction and data processing
+- **Enhanced JSON Support** - JSON parsing with nested structure handling for objects and arrays
+- **Release Automation** - Complete release pipeline with performance metrics and packaging
+
+### Performance Metrics (v0.1.0)
+- **Binary Size**: 18MB (self-contained, no runtime dependencies)
+- **Startup Time**: ~340ms (measured on Apple Silicon)
+- **Core Features**: Arithmetic, basic evaluation, JSON primitives, file I/O foundations
 
 ### Known Limitations
 - **[SBCL Runtime Limitations](docs/sbcl-runtime-limitations.md)** - CLI argument handling limitations inherited from SBCL
+- **Limited Standard Library**: JSON and HTTP functions not yet exposed to user scripts (available internally)
+- **String Operations**: Some string functions need refinement for full compatibility
 
 ## Documentation Maintenance
 
