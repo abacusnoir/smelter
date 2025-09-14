@@ -24,6 +24,12 @@
       ;; Load Coalton system
       (ql:quickload :coalton :silent t)
       
+      ;; Load adapter dependencies
+      (format t "Loading adapter dependencies...~%")
+      (ql:quickload :st-json :silent t)
+      (ql:quickload :split-sequence :silent t)
+      (ql:quickload :drakma :silent t)
+      
       ;; Verify Coalton is loaded
       (unless (find-package :coalton)
         (error "Coalton package not found after loading"))
@@ -59,6 +65,15 @@
         (load (merge-pathnames "src/stdlib/smelter-prelude.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-io.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-system.lisp" cwd))
+        
+        ;; Load adapters (testing JSON adapter first)
+        (format t "Loading Smelter JSON adapter...~%")
+        (load (merge-pathnames "src/adapters/json.lisp" cwd))
+        ;; (load (merge-pathnames "src/adapters/fs.lisp" cwd))
+        ;; (load (merge-pathnames "src/adapters/cli.lisp" cwd))
+        ;; (load (merge-pathnames "src/adapters/process.lisp" cwd))
+        ;; (load (merge-pathnames "src/adapters/http.lisp" cwd))
+        
         (load (merge-pathnames "src/cli.lisp" cwd)))
       
       ;; Verify all packages are loaded
@@ -72,6 +87,18 @@
         (error "Smelter stdlib.system package not found"))
       (unless (find-package :smelter)
         (error "Smelter main package not found"))
+      
+      ;; Verify JSON adapter package
+      (unless (find-package :smelter/adapters/json)
+        (error "Smelter JSON adapter package not found"))
+      ;; (unless (find-package :smelter/adapters/fs)
+      ;;   (error "Smelter FS adapter package not found"))
+      ;; (unless (find-package :smelter/adapters/cli)
+      ;;   (error "Smelter CLI adapter package not found"))
+      ;; (unless (find-package :smelter/adapters/process)
+      ;;   (error "Smelter Process adapter package not found"))
+      ;; (unless (find-package :smelter/adapters/http)
+      ;;   (error "Smelter HTTP adapter package not found"))
       
       (format t "Smelter system loaded successfully.~%")
       
