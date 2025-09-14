@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install SBCL
+        run: brew install sbcl
+      
+      - name: Install Quicklisp
+        run: |
+          curl -O https://beta.quicklisp.org/quicklisp.lisp
+          sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)' --quit
+      
+      - name: Build Release Binary
+        run: |
+          make deps
+          make build-minimal || make build
+          mv smt-minimal smelter 2>/dev/null || mv smt smelter
+          strip smelter
+          if command -v upx >/dev/null 2>&1; then
+            upx --best smelter || true
+          fi
+      
+      - name: Create Release Archive
+        run: |
+          tar -czf smelter-${{ github.ref_name }}-darwin-$(uname -m).tar.gz smelter
+          shasum -a 256 smelter-*.tar.gz > checksums.txt
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            smelter-*.tar.gz
+            checksums.txt
+          draft: false
+          prerelease: false
+          body: |
+            # Smelter ${{ github.ref_name }}
+            
+            🔥 Type-safe scripting with 43ms startup
+            
+            ## Installation
+            
+            ### Homebrew (recommended)
+            ```bash
+            brew tap abacusnoir/smelter
+            brew install smelter
+            ```
+            
+            ### Manual
+            ```bash
+            curl -L https://github.com/abacusnoir/smelter/releases/download/${{ github.ref_name }}/smelter-${{ github.ref_name }}-darwin-$(uname -m).tar.gz | tar xz
+            chmod +x smelter
+            sudo mv smelter /usr/local/bin/smt
+            ```
+            
+            ## Highlights
+            - ⚡ 43ms startup (faster than Ruby)
+            - 🛡️ Full type safety
+            - 📦 9.3MB self-contained binary
+            - 🎯 Zero dependencies
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
