@@ -30,6 +30,7 @@ log_success() { echo -e "${GREEN}[PASS]${NC} $1"; ((PASSED_TESTS++)); }
 log_failure() { echo -e "${RED}[FAIL]${NC} $1"; ((FAILED_TESTS++)); }
 log_expected_failure() { echo -e "${PURPLE}[EXPECTED FAIL]${NC} $1"; ((EXPECTED_FAILURES++)); }
 log_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_debug() { [[ -n "$DEBUG" ]] && echo "DEBUG: $1"; }
 
 # Clean build from scratch (unless SKIP_BUILD is set)
 clean_and_build() {
@@ -78,6 +79,11 @@ test_command() {
     exit_code=$?
     set -e
     
+    log_debug "Command output: '$output'"
+    log_debug "Exit code: $exit_code"
+    log_debug "Expected: '$expected'"
+    log_debug "Should fail: $should_fail"
+    
     if [[ "$should_fail" == "true" ]]; then
         if [[ $exit_code -ne 0 ]]; then
             log_expected_failure "$name (expected failure)"
@@ -87,10 +93,14 @@ test_command() {
     else
         if [[ $exit_code -eq 0 ]] && echo "$output" | grep -q "$expected"; then
             log_success "$name"
+            log_debug "Test passed successfully"
         else
             log_failure "$name - Expected: $expected, Got: $output (exit: $exit_code)"
+            log_debug "Test failed"
         fi
     fi
+    
+    log_debug "Finished test $name"
 }
 
 # Test evaluation expressions
@@ -379,18 +389,23 @@ main() {
 # Handle command line arguments
 case "${1:-}" in
     --help|-h)
-        echo "Usage: $0 [--help] [--skip-build]"
+        echo "Usage: $0 [--help] [--skip-build] [--debug]"
         echo ""
         echo "Options:"
         echo "  --help       Show this help"
         echo "  --skip-build Skip clean build (use existing binary)"
+        echo "  --debug      Enable debug output"
         echo ""
         echo "Environment variables:"
         echo "  SKIP_BUILD=1  Same as --skip-build"
+        echo "  DEBUG=1       Same as --debug"
         exit 0
         ;;
     --skip-build)
         SKIP_BUILD=1
+        ;;
+    --debug)
+        DEBUG=1
         ;;
 esac
 

@@ -157,18 +157,17 @@
 
 ;;; Expression evaluation
 (defun eval-expression (expr-string)
-  "Evaluate a Coalton expression - Critical: Set package BEFORE reading the string"
+  "Evaluate a Coalton expression using the same translation as run-script"
   (handler-case
       (progn
         (setup-coalton-environment)
         
-        ;; Critical: Set package context BEFORE reading the form
-        ;; This ensures symbols are interned in the correct package
-        (let ((*package* (find-package :coalton-user)))
-          (let* ((form (read-from-string expr-string))  ; Read IN coalton-user package
-                 (wrapped `(coalton:coalton ,form))     ; Wrap for Coalton evaluation
-                 (result (eval wrapped)))               ; Evaluate in same package
-            (format t "~A~%" result)))
+        ;; Use translator to convert pure Coalton to executable form
+        (let ((translated (smelter.translator:translate-pure-coalton expr-string :for-repl t)))
+          ;; Evaluate in the correct package context
+          (let ((*package* (find-package :coalton-user)))
+            (let ((result (eval (read-from-string translated))))
+              (format t "~A~%" result))))
         
         (sb-ext:exit :code 0))
     
@@ -244,8 +243,14 @@
               ;; Evaluate expression
               (t
                (handler-case
-                   (let ((result (eval (read-from-string line))))
-                     (format t "~A~%" result))
+                   (progn
+                     (setup-coalton-environment)
+                     ;; Use translator to convert pure Coalton to executable form
+                     (let ((translated (smelter.translator:translate-pure-coalton line :for-repl t)))
+                       ;; Evaluate in the correct package context
+                       (let ((*package* (find-package :coalton-user)))
+                         (let ((result (eval (read-from-string translated))))
+                           (format t "~A~%" result)))))
                  (error (e)
                    (format t "Error: ~A~%" e))))))))
     
