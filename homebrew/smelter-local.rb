@@ -4,8 +4,8 @@ class SmelterLocal < Formula
   version "0.1.0"
   license "MIT"
 
-  # Use local file for testing
-  url "file:///Users/agam/Projects/smelter/smelter-0.1.0-darwin-arm64-local.tar.gz"
+  # Use local file for testing - Update this path for your system
+  url "file://#{ENV['SMELTER_LOCAL_PATH'] || '/path/to/smelter-0.1.0-darwin-arm64-local.tar.gz'}"
   sha256 "fac8f10cb71d1de26d3e94b77473da2ee9fb299bde6dd4ad62da910a01e40a53"
 
   def install

@@ -51,10 +51,13 @@ build/cache/
 *.build-temp
 
 # Release artifacts
-releases/*.tar.gz
-releases/*.zip
-releases/*.dmg
+releases/
+*.tar.gz
+*.zip
+*.dmg
 dist/
+smelter
+smelter-*
 
 # Test artifacts
 test/temp/
@@ -182,4 +185,4 @@ local.mk
 # Core dumps
 core
 core.*
-vgcore.*
+vgcore.*homebrew-tap/

@@ -7,7 +7,7 @@ echo "🔥 Testing Smelter Homebrew Formula Locally"
 echo "=========================================="
 
 # Create local test tarball with proper structure
-cd /Users/agam/Projects/smelter
+cd "$(dirname "$0")"
 
 # Create a proper tarball that matches what GitHub release would have
 echo "Creating test tarball..."

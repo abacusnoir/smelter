@@ -1,0 +1,123 @@
+.
+├── ADAPTER_IMPLEMENTATION_GUIDE.md
+├── benchmark-marketing.sh
+├── benchmark-official.sh
+├── benchmark-simple.sh
+├── build
+│   ├── build-adapters.lisp
+│   ├── create-image.lisp
+│   ├── fast-core-simple.lisp
+│   ├── fast-core.lisp
+│   └── smelter.core
+├── CLAUDE.md
+├── create-release.sh
+├── debug-script-translator.lisp
+├── debug-translator.lisp
+├── docs
+│   ├── adapter-pattern-template.md
+│   ├── coalton-migration-patterns.md
+│   ├── coalton-toplevel-implementation.md
+│   ├── http-json-adapters.md
+│   ├── performance-optimization-achievement.md
+│   └── sbcl-runtime-limitations.md
+├── examples
+│   ├── api-client.smt
+│   ├── fibonacci.coal
+│   ├── github-stats.coal
+│   ├── hello.coal
+│   ├── pure-coalton-demo.coal
+│   ├── pure-coalton.coal
+│   ├── pure-hello.coal
+│   ├── simple.coal
+│   ├── test-all.smt
+│   ├── test-http.smt
+│   ├── test-json.smt
+│   ├── working-demo.coal
+│   └── working-hello.coal
+├── homebrew
+│   ├── smelter-local.rb
+│   └── smelter.rb
+├── HOMEBREW_RELEASE_GUIDE.md
+├── homebrew-smelter
+│   ├── Formula
+│   │   └── smelter.rb
+│   └── README.md
+├── LICENSE
+├── Makefile
+├── performance-diagnosis.sh
+├── performance-results
+│   └── 20250914-103852
+│       ├── embedded-files.txt
+│       ├── file-operations.txt
+│       ├── measurements.csv
+│       └── syscall-summary.txt
+├── README.md
+├── releases
+│   └── v0.1.0
+│       ├── homebrew
+│       ├── smelter
+│       ├── smelter-0.1.0-darwin-arm64.tar.gz
+│       └── smelter-0.1.0-darwin-arm64.tar.gz.sha256
+├── responses
+│   ├── 2025-01-14-http-json-adapters.md
+│   ├── adapter-implementation-response.md
+│   ├── adapter-integration-phase4-progress.md
+│   ├── adapter-validation-findings-2025-09-13.md
+│   ├── cli-binary-entry-point-fix-summary.md
+│   ├── coalton-arithmetic-fix-complete.md
+│   ├── coalton-migration-response.md
+│   ├── coalton-prelude-fix-complete.md
+│   ├── eval-command-fix-complete.md
+│   ├── homebrew-completion-summary.md
+│   ├── homebrew-preparation-response.md
+│   ├── json-adapter-breakthrough-success.md
+│   ├── list-operations-fix-2025-09-13.md
+│   ├── performance-optimization-response.md
+│   ├── regression-test-diagnosis-and-fixes.md
+│   ├── release-preparation-response.md
+│   └── release-readiness-summary.md
+├── scripts
+│   ├── install.sh
+│   └── release.sh
+├── smelter-0.1.0-darwin-arm64-local.tar.gz
+├── smelter.asd
+├── smt
+├── smt-minimal
+├── src
+│   ├── adapters
+│   │   ├── cli.lisp
+│   │   ├── fs.lisp
+│   │   ├── http.lisp
+│   │   ├── json.lisp
+│   │   └── process.lisp
+│   ├── cli.lisp
+│   ├── coalton-preprocessor.lisp
+│   ├── coalton-translator.lisp
+│   └── stdlib
+│       ├── smelter-file.lisp
+│       ├── smelter-http.lisp
+│       ├── smelter-io.lisp
+│       ├── smelter-json.lisp
+│       ├── smelter-prelude.lisp
+│       └── smelter-system.lisp
+├── structure.txt
+├── test
+│   ├── adapter-tests.coal
+│   ├── regression
+│   │   ├── README.md
+│   │   ├── results.log
+│   │   ├── run-regression-tests-debug.sh
+│   │   ├── run-regression-tests.sh
+│   │   ├── scripts
+│   │   │   └── simple-stdlib.coal
+│   │   └── test-specs.yaml
+│   ├── simple-test.sh
+│   └── smoke-test.sh
+├── test_hof.coal
+├── test_list_ops.coal
+├── test-all-features.sh
+├── test-homebrew-local.sh
+├── test-output.log
+└── test-simple.coal
+
+20 directories, 101 files

@@ -7,7 +7,7 @@ class Smelter < Formula
   # URL will point to your GitHub release
   if OS.mac? && Hardware::CPU.arm?
     url "https://github.com/abacusnoir/smelter/releases/download/v0.1.0/smelter-0.1.0-darwin-arm64.tar.gz"
-    sha256 "a74aa25b5658f84baf67ef7c185684b9f47018f4d69b0b5105077036eabb1190"
+    sha256 "9f61c25c715c66441d836e13d2099d0803c5630d6675f59f3c595c05c9c4337e"
   elsif OS.mac? && Hardware::CPU.intel?
     url "https://github.com/abacusnoir/smelter/releases/download/v0.1.0/smelter-0.1.0-darwin-x86_64.tar.gz"
     sha256 "PENDING_INTEL_BUILD"
