@@ -247,12 +247,15 @@
                      (setup-coalton-environment)
                      ;; Use translator to convert pure Coalton to executable form
                      (let ((translated (smelter.translator:translate-pure-coalton line :for-repl t)))
-                       ;; Evaluate in the correct package context
+                       ;; Evaluate in the correct package context with proper error handling
                        (let ((*package* (find-package :coalton-user)))
-                         (let ((result (eval (read-from-string translated))))
-                           (format t "~A~%" result)))))
+                         (handler-case
+                             (let ((result (eval (read-from-string translated))))
+                               (format t "~A~%" result))
+                           (error (e)
+                             (format t "Evaluation Error: ~A~%" e))))))
                  (error (e)
-                   (format t "Error: ~A~%" e))))))))
+                   (format t "Translation Error: ~A~%" e))))))))
     
     (error (e)
       (format *error-output* "REPL error: ~A~%" e)
