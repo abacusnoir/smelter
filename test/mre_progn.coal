@@ -1,0 +1,5 @@
+(defun main ()
+  "Minimal test case to reproduce progn operator error"
+  (progn
+    (format t "First line~%")
+    (format t "Second line~%")))

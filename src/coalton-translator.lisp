@@ -10,12 +10,18 @@
 
 (in-package :smelter.translator)
 
+;;; Utility functions
+(defun string-contains-p (substring string)
+  "Check if string contains substring"
+  (search substring string))
+
 ;;; Parse structure for pure Coalton files
 (defstruct coalton-script
   "Represents a parsed pure Coalton script"
   (imports nil)
   (declarations nil)
   (definitions nil)
+  (lisp-forms nil)        ; Common Lisp forms like defun
   (main-function nil)
   (has-main-p nil))
 
@@ -57,6 +63,33 @@
     
     (dolist (form forms)
       (cond
+        ;; Handle coalton-toplevel forms - extract their contents
+        ((and (listp form) (eq (first form) 'coalton-toplevel))
+         (dolist (inner-form (rest form))
+           (cond
+             ;; Handle imports within coalton-toplevel
+             ((and (listp inner-form) (eq (first inner-form) 'import))
+              (push inner-form (coalton-script-imports script)))
+             
+             ;; Handle type declarations within coalton-toplevel
+             ((and (listp inner-form) (eq (first inner-form) 'declare))
+              (push inner-form (coalton-script-declarations script)))
+             
+             ;; Handle definitions within coalton-toplevel
+             ((and (listp inner-form) (eq (first inner-form) 'define))
+              (let ((def-name (if (listp (second inner-form))
+                                 (first (second inner-form))
+                                 (second inner-form))))
+                (push inner-form (coalton-script-definitions script))
+                ;; Check if this is a main function
+                (when (eq def-name 'main)
+                  (setf (coalton-script-has-main-p script) t)
+                  (setf (coalton-script-main-function script) inner-form))))
+             
+             ;; Handle other forms within coalton-toplevel
+             (t
+              (push inner-form (coalton-script-definitions script))))))
+        
         ;; Handle imports
         ((and (listp form) (eq (first form) 'import))
          (push form (coalton-script-imports script)))
@@ -76,6 +109,14 @@
              (setf (coalton-script-has-main-p script) t)
              (setf (coalton-script-main-function script) form))))
         
+        ;; Handle Common Lisp forms (defun, defvar, etc.)
+        ((and (listp form) (member (first form) '(defun defvar defparameter defconstant defmacro)))
+         (push form (coalton-script-lisp-forms script))
+         ;; Check if this is a main function in Common Lisp
+         (when (and (eq (first form) 'defun) (eq (second form) 'main))
+           (setf (coalton-script-has-main-p script) t)
+           (setf (coalton-script-main-function script) form)))
+        
         ;; Handle standalone expressions (for REPL/eval)
         (t
          (push form (coalton-script-definitions script)))))
@@ -84,6 +125,7 @@
     (setf (coalton-script-imports script) (nreverse (coalton-script-imports script)))
     (setf (coalton-script-declarations script) (nreverse (coalton-script-declarations script)))
     (setf (coalton-script-definitions script) (nreverse (coalton-script-definitions script)))
+    (setf (coalton-script-lisp-forms script) (nreverse (coalton-script-lisp-forms script)))
     
     script))
 
@@ -108,56 +150,97 @@
               (format out "    ~S~%" form))
             (format out "  ))"))))))
 
+(defun qualify-cl-symbols (form)
+  "Recursively qualify Common Lisp symbols that might be shadowed by Coalton"
+  (let ((cl-symbol-names '("PROGN" "DEFUN" "DEFVAR" "DEFPARAMETER" "DEFCONSTANT" "DEFMACRO"
+                           "FORMAT" "LET" "LET*" "LAMBDA" "COND" "IF" "WHEN" "UNLESS"
+                           "LIST" "CONS" "CAR" "CDR" "FIRST" "REST"
+                           "AND" "OR" "NOT" "NULL" "EQ" "EQUAL"
+                           "LOOP" "DOLIST" "DOTIMES"
+                           "HANDLER-CASE" "ERROR" "IGNORE-ERRORS")))
+    (cond
+      ;; If it's a list starting with a CL symbol, qualify it
+      ((and (listp form)
+            (symbolp (first form))
+            (member (symbol-name (first form)) cl-symbol-names :test #'string=))
+       (cons (intern (symbol-name (first form)) :cl)
+             (mapcar #'qualify-cl-symbols (rest form))))
+      
+      ;; Recursively process nested lists
+      ((listp form)
+       (mapcar #'qualify-cl-symbols form))
+      
+      ;; Individual symbols that should be qualified (less common case)
+      ((and (symbolp form)
+            (member (symbol-name form) cl-symbol-names :test #'string=))
+       (intern (symbol-name form) :cl))
+      
+      ;; Leave everything else unchanged
+      (t form))))
+
 (defun translate-for-script (script)
-  "Translate a Coalton script for execution"
+  "Translate a script containing both Coalton and Common Lisp forms"
   (let ((coalton-forms (append
                         (coalton-script-imports script)
                         (coalton-script-declarations script)
-                        (coalton-script-definitions script))))
+                        (coalton-script-definitions script)))
+        (lisp-forms (coalton-script-lisp-forms script)))
     
     (with-output-to-string (out)
       ;; Add package setup  
-      (format out "(progn~%")
-      (format out "  (in-package :coalton-user)~%~%")
+      (format out "(cl:progn~%")
+      (format out "  (cl:in-package :coalton-user)~%~%")
       
       ;; Add smelter standard library imports
       (format out "  ;; Import Smelter standard libraries~%")
-      (format out "  (ignore-errors (use-package :smelter.stdlib.io :coalton-user))~%")
-      (format out "  (ignore-errors (use-package :smelter.stdlib.system :coalton-user))~%~%")
-      (format out "  (coalton:coalton-toplevel~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.io :coalton-user))~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%~%")
       
-      ;; Add user's Coalton code
-      (dolist (form coalton-forms)
-        (format out "    ~S~%" form))
-      (format out "  )~%")
+      ;; Only include coalton-toplevel if we have Coalton forms
+      (when coalton-forms
+        (format out "  (coalton:coalton-toplevel~%")
+        ;; Add user's Coalton code
+        (dolist (form coalton-forms)
+          (format out "    ~S~%" form))
+        (format out "  )~%~%"))
       
-      ;; Generate main wrapper if main exists
+      ;; Add Common Lisp forms directly (outside coalton-toplevel) with qualification
+      (dolist (form lisp-forms)
+        (let ((qualified-form (qualify-cl-symbols form)))
+          ;; Print qualified form with explicit package context to force cl: prefixes
+          (let ((*package* (find-package :coalton-user)))
+            (format out "  ~S~%~%" qualified-form))))
+      
+      ;; Auto-execute main function if it exists
       (when (coalton-script-has-main-p script)
-        (format out "  (defun cl-main ()~%")
-        (format out "    \"Auto-generated main wrapper\"~%")
-        (format out "    (handler-case~%")
-        (format out "      (progn~%")
-        (format out "        (coalton:coalton (main))~%")
-        (format out "        (fresh-line)~%")
-        (format out "        (force-output))~%")
-        (format out "      (error (e)~%")
-        (format out "        (format *error-output* \"Error: ~~A~~%\" e)~%")
-        (format out "        (uiop:quit 1))))~%~%")
-        
-        ;; Set as entry point
-        (format out "  (setf smelter.cli:*script-main* #'cl-main)~%"))
+        (format out "  ;; Auto-execute main function~%")
+        (format out "  (cl:handler-case~%")
+        (format out "    (main)~%")
+        (format out "    (cl:error (e)~%")
+        (format out "      (cl:format cl:*error-output* \"Error in main: ~~A~~%\" e)~%")
+        (format out "      (uiop:quit 1)))~%"))
         
       (format out ")~%"))))
 
 (defun translate-pure-coalton (content &key (for-repl nil))
   "Translate pure Coalton syntax to executable hybrid format"
-  (let ((script (parse-coalton-file content)))
-    
-    (if for-repl
-        ;; REPL mode: evaluate expressions directly
-        (translate-for-repl script)
-        ;; Script mode: create full program
-        (translate-for-script script))))
+  ;; Check if content is already wrapped in coalton-toplevel
+  (if (and (not for-repl) (string-contains-p "coalton-toplevel" content))
+      ;; Already has coalton-toplevel, just wrap in basic execution context
+      (with-output-to-string (out)
+        (format out "(progn~%")
+        (format out "  (in-package :coalton-user)~%")
+        (format out "  ;; Import Smelter standard libraries~%")
+        (format out "  (ignore-errors (use-package :smelter.stdlib.io :coalton-user))~%")
+        (format out "  (ignore-errors (use-package :smelter.stdlib.system :coalton-user))~%")
+        (format out "  ~A)" content))
+      ;; Standard translation path
+      (let ((script (parse-coalton-file content)))
+        (if for-repl
+            ;; REPL mode: evaluate expressions directly
+            (translate-for-repl script)
+            ;; Script mode: create full program
+            (translate-for-script script)))))
 
 (defun wrap-for-execution (coalton-code)
   "Wrap translated Coalton code for safe execution"

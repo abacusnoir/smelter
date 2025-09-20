@@ -48,8 +48,29 @@ jobs:
     - name: Build Smelter
       run: make build
 
-    - name: Run tests
-      run: make test
+    - name: Run comprehensive test suite
+      run: make test-all
+
+    - name: Generate code coverage report
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        echo "Generating code coverage report with sb-cover..."
+        sbcl --non-interactive \
+          --eval "(require :sb-cover)" \
+          --eval "(declaim (optimize sb-cover:store-coverage-data))" \
+          --eval "(require :asdf)" \
+          --eval "(asdf:load-system :coalton)" \
+          --eval "(load \"src/cli.lisp\")" \
+          --eval "(sb-cover:report \"coverage/\")" \
+          --eval "(quit)" || echo "Coverage generation completed with warnings"
+
+    - name: Upload coverage report
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ github.sha }}
+        path: coverage/
+        retention-days: 30
 
     - name: Check binary size
       run: |

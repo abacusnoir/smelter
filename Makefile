@@ -112,6 +112,12 @@ test-regression: $(TARGET)
 	@chmod +x $(TEST_DIR)/regression/run-regression-tests.sh
 	@$(TEST_DIR)/regression/run-regression-tests.sh
 
+# End-to-End integration test suite
+test-e2e: $(TARGET)
+	@echo "Running End-to-End integration tests..."
+	@chmod +x $(TEST_DIR)/e2e-test.sh
+	@$(TEST_DIR)/e2e-test.sh
+
 # Install adapter dependencies
 install-deps:
 	@echo "Installing adapter dependencies..."
@@ -145,8 +151,8 @@ test-regression-quick:
 	@chmod +x $(TEST_DIR)/regression/run-regression-tests.sh
 	@SKIP_BUILD=1 $(TEST_DIR)/regression/run-regression-tests.sh
 
-# Full test suite (smoke + regression)
-test-all: test test-regression
+# Full test suite (smoke + regression + e2e)
+test-all: test test-regression test-e2e
 
 # Clean build artifacts
 clean:
@@ -232,8 +238,9 @@ info:
 	@echo "  make build              - Build the executable"
 	@echo "  make test               - Run smoke tests"
 	@echo "  make test-regression    - Run comprehensive regression tests"
+	@echo "  make test-e2e           - Run End-to-End integration tests"
 	@echo "  make test-regression-quick - Run regression tests (skip rebuild)"
-	@echo "  make test-all           - Run all tests (smoke + regression)"
+	@echo "  make test-all           - Run all tests (smoke + regression + e2e)"
 	@echo "  make install-deps       - Install adapter dependencies"
 	@echo "  make build-adapters     - Build Smelter with adapters"
 	@echo "  make test-adapters      - Test adapter functionality"

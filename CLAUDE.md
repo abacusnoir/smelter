@@ -99,6 +99,8 @@ The final binary is self-contained with no runtime dependencies.
 - **[Official Coalton Migration Patterns](docs/coalton-migration-patterns.md)** - Migrated stdlib to use official Coalton library binding patterns
 - **[HTTP and JSON Adapters](docs/http-json-adapters.md)** - Network and JSON capabilities for API interaction and data processing
 - **[Performance Optimization Achievement](docs/performance-optimization-achievement.md)** - 51.6% startup improvement (88ms → 42.6ms) with lazy loading architecture
+- **[End-to-End Testing Achievement](docs/e2e-testing-achievement.md)** - Comprehensive E2E integration test suite completing the testing pyramid
+- **[CI Integration Achievement](docs/ci-integration-achievement.md)** - Complete CI/CD pipeline with automated testing and code coverage
 - **Enhanced JSON Support** - JSON parsing with nested structure handling for objects and arrays
 - **Release Automation** - Complete release pipeline with performance metrics and packaging
 
