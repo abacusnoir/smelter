@@ -24,234 +24,226 @@
 
 (coalton-toplevel
   (define-type FileInfo
-    (FileInfo Integer Integer Boolean String))
+    (FileInfo Integer Integer Boolean String))  ; size, modified-time, is-directory, path
 
   (define-type FSError
     (FileNotFound String)
-    (PermissionDenied String)  
+    (PermissionDenied String)
     (IOError String))
 
-  (declare handle-file-error (cl:condition -> FSError))
-  (define (handle-file-error condition)
-    "Convert Common Lisp file condition to FSError"
-    (lisp FSError (condition)
-      (cl:cond 
-        ((cl:typep condition 'cl:file-does-not-exist)
-         (cl:make-instance 'FileNotFound 
-                           :string (cl:format cl:nil "File not found: ~A" condition)))
-        ((cl:typep condition 'cl:file-error)  
-         (cl:make-instance 'IOError
-                           :string (cl:format cl:nil "File I/O error: ~A" condition)))
-        (cl:t
-         (cl:make-instance 'IOError 
-                           :string (cl:format cl:nil "Filesystem error: ~A" condition))))))
-
-  (declare read-file (String -> (Result String FSError)))
-  (define (read-file filepath)
+  ;; File reading and writing
+  (declare read-file (String -> (Result FSError String)))
+  (define (read-file path)
     "Read entire file contents as string"
-    (lisp (Result String FSError) (filepath)
+    (lisp (Result FSError String) (path)
       (cl:handler-case
-          (cl:with-open-file (stream filepath :direction :input :external-format :utf-8)
-            (cl:let ((content (cl:make-string (cl:file-length stream))))
-              (cl:read-sequence content stream)
-              (cl:values 
-               (cl:make-instance 'coalton:Ok :ok content)
-               cl:t)))
-        (cl:condition (e)
-          (cl:values
-           (cl:make-instance 'coalton:Err :err (handle-file-error e))
-           cl:t)))))
+          (cl:with-open-file (stream path :direction :input :if-does-not-exist :error)
+            (Ok (cl:with-output-to-string (s)
+                  (cl:loop for line = (cl:read-line stream cl:nil cl:nil)
+                           while line
+                           do (cl:write-line line s)))))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Err (FileNotFound path)))
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied path)))
+            (cl:t (Err (IOError (cl:format cl:nil "File error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Read error: ~A" e)))))))
 
-  (declare write-file (String -> String -> (Result Unit FSError)))
-  (define (write-file filepath content)
+  (declare write-file (String -> String -> (Result FSError Unit)))
+  (define (write-file path content)
     "Write string content to file (overwrites existing)"
-    (lisp (Result Unit FSError) (filepath content)
-      (cl:handler-case
-          (cl:with-open-file (stream filepath :direction :output 
-                                     :if-exists :supersede 
-                                     :if-does-not-exist :create
-                                     :external-format :utf-8)
-            (cl:write-string content stream)
-            (cl:values
-             (cl:make-instance 'coalton:Ok :ok coalton:Unit)
-             cl:t))
-        (cl:condition (e)
-          (cl:values
-           (cl:make-instance 'coalton:Err :err (handle-file-error e))
-           cl:t)))))
-
-  (declare append-file (String -> String -> (Result Unit FSError)))
-  (define (append-file filepath content)
-    "Append string content to file"
-    (lisp (Result Unit FSError) (filepath content)
-      (cl:handler-case
-          (cl:with-open-file (stream filepath :direction :output 
-                                     :if-exists :append
-                                     :if-does-not-exist :create
-                                     :external-format :utf-8)
-            (cl:write-string content stream)
-            (cl:values
-             (cl:make-instance 'coalton:Ok :ok coalton:Unit)
-             cl:t))
-        (cl:condition (e)
-          (cl:values
-           (cl:make-instance 'coalton:Err :err (handle-file-error e))
-           cl:t)))))
-
-  (declare delete-file (String -> (Result Unit FSError)))
-  (define (delete-file filepath)
-    "Delete file from filesystem"
-    (lisp (Result Unit FSError) (filepath)
+    (lisp (Result FSError Unit) (path content)
       (cl:handler-case
           (cl:progn
-            (cl:delete-file filepath)
-            (cl:values
-             (cl:make-instance 'coalton:Ok :ok coalton:Unit)
-             cl:t))
-        (cl:condition (e)
-          (cl:values
-           (cl:make-instance 'coalton:Err :err (handle-file-error e))
-           cl:t)))))
+            (cl:ensure-directories-exist path)
+            (cl:with-open-file (stream path :direction :output :if-exists :supersede)
+              (cl:write-string content stream))
+            (Ok Unit))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied path)))
+            (cl:t (Err (IOError (cl:format cl:nil "Write error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Write error: ~A" e)))))))
 
+  (declare append-file (String -> String -> (Result FSError Unit)))
+  (define (append-file path content)
+    "Append string content to file"
+    (lisp (Result FSError Unit) (path content)
+      (cl:handler-case
+          (cl:progn
+            (cl:ensure-directories-exist path)
+            (cl:with-open-file (stream path :direction :output :if-exists :append :if-does-not-exist :create)
+              (cl:write-string content stream))
+            (Ok Unit))
+        (cl:file-error (e)
+          (Err (IOError (cl:format cl:nil "Append error: ~A" e))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Append error: ~A" e)))))))
+
+  (declare delete-file (String -> (Result FSError Unit)))
+  (define (delete-file path)
+    "Delete file"
+    (lisp (Result FSError Unit) (path)
+      (cl:handler-case
+          (cl:progn
+            (cl:delete-file path)
+            (Ok Unit))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Err (FileNotFound path)))
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied path)))
+            (cl:t (Err (IOError (cl:format cl:nil "Delete error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Delete error: ~A" e)))))))
+
+  ;; File/directory existence checks
   (declare file-exists? (String -> Boolean))
-  (define (file-exists? filepath)
+  (define (file-exists? path)
     "Check if file exists"
-    (lisp Boolean (filepath)
-      (cl:and (cl:probe-file filepath) 
-              (cl:not (cl:directory-pathname-p filepath)))))
+    (lisp Boolean (path)
+      (cl:and (cl:probe-file path)
+              (cl:not (uiop:directory-pathname-p path)))))
 
   (declare directory-exists? (String -> Boolean))
-  (define (directory-exists? dirpath)
+  (define (directory-exists? path)
     "Check if directory exists"
-    (lisp Boolean (dirpath)
-      (cl:and (cl:probe-file dirpath)
-              (cl:directory-pathname-p dirpath))))
+    (lisp Boolean (path)
+      (cl:and (cl:probe-file path)
+              (uiop:directory-pathname-p path))))
 
-  (declare get-file-info (String -> (Result FileInfo FSError)))
-  (define (get-file-info filepath)
-    "Get file metadata information"
-    (lisp (Result FileInfo FSError) (filepath)
+  ;; File information - simplified version that doesn't rely on sb-posix
+  (declare get-file-info (String -> (Result FSError FileInfo)))
+  (define (get-file-info path)
+    "Get file information"
+    (lisp (Result FSError FileInfo) (path)
       (cl:handler-case
-          (cl:let* ((path (cl:probe-file filepath))
-                    (truename (cl:truename path)))
-            (cl:multiple-value-bind (second minute hour day month year)
-                (cl:decode-universal-time (cl:file-write-date truename))
-              (cl:declare (cl:ignore second minute hour))
-              (cl:let ((size (cl:with-open-file (stream truename)
-                               (cl:file-length stream)))
-                       (modified-time (+ (* (- year 1900) 365 24 60 60)
-                                       (* (- month 1) 30 24 60 60)  
-                                       (* (- day 1) 24 60 60)))
-                       (is-dir (cl:directory-pathname-p truename))
-                       (name (cl:file-namestring truename)))
-                (cl:values
-                 (cl:make-instance 'coalton:Ok 
-                                   :ok (cl:make-instance 'FileInfo
-                                                         :integer size
-                                                         :integer modified-time
-                                                         :boolean is-dir
-                                                         :string name))
-                 cl:t))))
-        (cl:condition (e)
-          (cl:values
-           (cl:make-instance 'coalton:Err :err (handle-file-error e))
-           cl:t)))))
+          (cl:let* ((truename (cl:truename path))
+                    (write-date (cl:file-write-date truename))
+                    (is-dir (uiop:directory-pathname-p truename))
+                    (size (cl:if is-dir 
+                                 0 
+                                 (cl:with-open-file (stream truename)
+                                   (cl:file-length stream)))))
+            (Ok (FileInfo size write-date is-dir (cl:namestring truename))))
+        (cl:file-error (e)
+          (Err (FileNotFound path)))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Stat error: ~A" e)))))))
 
-  (declare list-directory (String -> (Result (List String) FSError)))
-  (define (list-directory dirpath)
-    "List contents of directory"
-    (lisp (Result (List String) FSError) (dirpath)
+  ;; Directory operations
+  (declare list-directory (String -> (Result FSError (List String))))
+  (define (list-directory path)
+    "List directory contents"
+    (lisp (Result FSError (List String)) (path)
       (cl:handler-case
-          (cl:let ((entries (cl:directory (cl:merge-pathnames "*" dirpath))))
-            (cl:values
-             (cl:make-instance 'coalton:Ok
-                               :ok (cl:mapcar #'cl:namestring entries))
-             cl:t))
-        (cl:condition (e)
-          (cl:values
-           (cl:make-instance 'coalton:Err :err (handle-file-error e))
-           cl:t)))))
+          (cl:let ((entries (uiop:directory-files path)))
+            (Ok (cl:mapcar #'cl:namestring entries)))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Err (FileNotFound path)))
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied path)))
+            (cl:t (Err (IOError (cl:format cl:nil "Directory list error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Directory list error: ~A" e)))))))
 
-  (declare create-directory (String -> (Result Unit FSError)))
-  (define (create-directory dirpath)
-    "Create directory (and parent directories if needed)"
-    (lisp (Result Unit FSError) (dirpath)
+  (declare create-directory (String -> (Result FSError Unit)))
+  (define (create-directory path)
+    "Create directory (and parents if needed)"
+    (lisp (Result FSError Unit) (path)
       (cl:handler-case
           (cl:progn
-            (cl:ensure-directories-exist dirpath)
-            (cl:values
-             (cl:make-instance 'coalton:Ok :ok coalton:Unit)
-             cl:t))
-        (cl:condition (e)
-          (cl:values
-           (cl:make-instance 'coalton:Err :err (handle-file-error e))
-           cl:t)))))
+            (cl:ensure-directories-exist (cl:concatenate 'cl:string path "/"))
+            (Ok Unit))
+        (cl:file-error (e)
+          (Err (IOError (cl:format cl:nil "Create directory error: ~A" e))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Create directory error: ~A" e)))))))
 
-  (declare remove-directory (String -> (Result Unit FSError)))
-  (define (remove-directory dirpath)
-    "Remove empty directory"
-    (lisp (Result Unit FSError) (dirpath)
+  (declare remove-directory (String -> (Result FSError Unit)))
+  (define (remove-directory path)
+    "Remove directory and its contents"
+    (lisp (Result FSError Unit) (path)
       (cl:handler-case
           (cl:progn
-            #+sbcl (sb-posix:rmdir dirpath)
-            #-sbcl (cl:error "Directory removal not implemented for this Lisp")
-            (cl:values
-             (cl:make-instance 'coalton:Ok :ok coalton:Unit)
-             cl:t))
-        (cl:condition (e)
-          (cl:values
-           (cl:make-instance 'coalton:Err :err (handle-file-error e))
-           cl:t)))))
+            (uiop:delete-directory-tree (cl:pathname path) :validate cl:t)
+            (Ok Unit))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Err (FileNotFound path)))
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied path)))
+            (cl:t (Err (IOError (cl:format cl:nil "Remove directory error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Remove directory error: ~A" e)))))))
 
+  ;; Path utilities
   (declare join-paths (String -> String -> String))
-  (define (join-paths base-path relative-path)
-    "Join two filesystem paths"
-    (lisp String (base-path relative-path)
-      (cl:namestring 
-       (cl:merge-pathnames relative-path base-path))))
+  (define (join-paths path1 path2)
+    "Join two path components"
+    (lisp String (path1 path2)
+      (cl:namestring (cl:merge-pathnames path2 path1))))
 
   (declare absolute-path (String -> String))
-  (define (absolute-path filepath)
-    "Get absolute path for given path"
-    (lisp String (filepath)
-      (cl:namestring (cl:truename filepath))))
+  (define (absolute-path path)
+    "Get absolute path"
+    (lisp String (path)
+      (cl:namestring (cl:truename path))))
 
   (declare path-filename (String -> String))
-  (define (path-filename filepath)
-    "Get filename part of path"
-    (lisp String (filepath)
-      (cl:file-namestring filepath)))
+  (define (path-filename path)
+    "Get filename from path"
+    (lisp String (path)
+      (cl:file-namestring path)))
 
-  (declare path-extension (String -> (Optional String)))
-  (define (path-extension filepath)
-    "Get file extension (without dot)"
-    (lisp (Optional String) (filepath)
-      (cl:let ((type (cl:pathname-type filepath)))
-        (cl:if type
-               (cl:make-instance 'coalton:Some :some type)
-               (cl:make-instance 'coalton:None)))))
+  (declare path-extension (String -> String))
+  (define (path-extension path)
+    "Get file extension"
+    (lisp String (path)
+      (cl:let ((ext (cl:pathname-type path)))
+        (cl:if ext ext ""))))
 
-  (declare read-lines (String -> (Result (List String) FSError)))
-  (define (read-lines filepath)
+  ;; Line-based operations
+  (declare read-lines (String -> (Result FSError (List String))))
+  (define (read-lines path)
     "Read file as list of lines"
-    (match (read-file filepath)
-      ((Ok content) (Ok (string-lines content)))
-      ((Err e) (Err e))))
+    (lisp (Result FSError (List String)) (path)
+      (cl:handler-case
+          (cl:with-open-file (stream path :direction :input)
+            (Ok (cl:loop for line = (cl:read-line stream cl:nil cl:nil)
+                         while line
+                         collect line)))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Err (FileNotFound path)))
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied path)))
+            (cl:t (Err (IOError (cl:format cl:nil "Read lines error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Read lines error: ~A" e)))))))
 
-  (declare write-lines (String -> (List String) -> (Result Unit FSError)))
-  (define (write-lines filepath lines)
-    "Write list of strings as lines to file"
-    (let ((content (join-lines lines)))
-      (write-file filepath content)))
-
-  (declare string-lines (String -> (List String)))
-  (define (string-lines s)
-    "Split string into lines"
-    (lisp (List String) (s)
-      (split-sequence:split-sequence #\Newline s)))
-
-  (declare join-lines ((List String) -> String))
-  (define (join-lines lines)
-    "Join list of strings with newlines"
-    (lisp String (lines)
-      (cl:format cl:nil "~{~A~^~%~}" lines))))
+  (declare write-lines (String -> (List String) -> (Result FSError Unit)))
+  (define (write-lines path lines)
+    "Write list of lines to file"
+    (lisp (Result FSError Unit) (path lines)
+      (cl:handler-case
+          (cl:progn
+            (cl:ensure-directories-exist path)
+            (cl:with-open-file (stream path :direction :output :if-exists :supersede)
+              (cl:dolist (line lines)
+                (cl:write-line line stream)))
+            (Ok Unit))
+        (cl:file-error (e)
+          (Err (IOError (cl:format cl:nil "Write lines error: ~A" e))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Write lines error: ~A" e))))))))

@@ -51,123 +51,116 @@
 
   (declare headers-to-alist (Headers -> cl:list))
   (define (headers-to-alist headers)
-    "Convert Headers to alist for drakma"
+    "Convert Headers to Common Lisp alist for drakma"
     (match headers
       ((Headers pairs)
        (lisp cl:list (pairs)
          (cl:mapcar (cl:lambda (pair)
-                      (cl:cons (coalton:fst pair) (coalton:snd pair)))
+                      (cl:cons (fst pair) (snd pair)))
                     pairs)))))
 
   (declare alist-to-headers (cl:list -> Headers))
   (define (alist-to-headers alist)
     "Convert alist to Headers"
-    (Headers (lisp (List (Tuple String String)) (alist)
-               (cl:mapcar (cl:lambda (pair)
-                            (cl:make-instance 'coalton:Tuple
-                                              :fst (cl:format cl:nil "~A" (cl:car pair))
-                                              :snd (cl:format cl:nil "~A" (cl:cdr pair))))
-                          alist))))
-
-  (declare http-request (Request -> (Result Response HttpError)))
-  (define (http-request req)
-    "Execute HTTP request with comprehensive error handling"
-    (match req
-      ((Request url method headers body)
-       (lisp (Result Response HttpError) (url method headers body)
-         (cl:handler-case
-             (cl:multiple-value-bind (response-body status-code response-headers)
-                 (drakma:http-request url
-                                      :method (method-to-keyword method)
-                                      :additional-headers (headers-to-alist headers)
-                                      :content (cl:when body body)
-                                      :connection-timeout 30
-                                      :read-timeout 30
-                                      :want-stream cl:nil)
-               (cl:let ((response-str (cl:if (cl:stringp response-body)
-                                             response-body
-                                             (flexi-streams:octets-to-string 
-                                              response-body :external-format :utf-8)))
-                        (response-headers-coalton (alist-to-headers response-headers)))
-                 (cl:values
-                  (cl:make-instance 'coalton:Ok
-                                    :ok (cl:make-instance 'Response
-                                                          :integer status-code
-                                                          :headers response-headers-coalton
-                                                          :string response-str))
-                  cl:t)))
-           (drakma:drakma-error (e)
-             (cl:values
-              (cl:make-instance 'coalton:Err
-                                :err (cl:make-instance 'NetworkError 
-                                                       :string (cl:format cl:nil "Network error: ~A" e)))
-              cl:t))
-           (cl:error (e)
-             (cl:values
-              (cl:make-instance 'coalton:Err
-                                :err (cl:make-instance 'NetworkError 
-                                                       :string (cl:format cl:nil "HTTP error: ~A" e)))
-              cl:t)))))))
-
-  (declare http-get (String -> (Result Response HttpError)))
-  (define (http-get url)
-    "Simple GET request"
-    (http-request (Request url GET (make-headers (make-list)) None)))
-
-  (declare http-post (String -> String -> (Result Response HttpError)))
-  (define (http-post url body)
-    "Simple POST request with body"
-    (http-request (Request url POST 
-                           (make-headers (make-list (Tuple "Content-Type" "application/json")))
-                           (Some body))))
-
-  (declare http-get-json (String -> (Result Response HttpError)))
-  (define (http-get-json url)
-    "GET request expecting JSON response"
-    (http-request (Request url GET
-                           (make-headers (make-list (Tuple "Accept" "application/json")))
-                           None)))
+    (Headers
+     (lisp (List (Tuple String String)) (alist)
+       (cl:mapcar (cl:lambda (pair)
+                    (Tuple (cl:car pair) (cl:cdr pair)))
+                  alist))))
 
   (declare make-headers ((List (Tuple String String)) -> Headers))
   (define (make-headers pairs)
-    "Create Headers from list of key-value pairs"
+    "Create Headers from list of pairs"
     (Headers pairs))
 
   (declare response-status (Response -> Integer))
-  (define (response-status resp)
+  (define (response-status response)
     "Get status code from response"
-    (match resp
+    (match response
       ((Response status _ _) status)))
 
-  (declare response-body (Response -> String))
-  (define (response-body resp)
-    "Get response body as string"
-    (match resp
-      ((Response _ _ body) body)))
-
   (declare response-headers (Response -> Headers))
-  (define (response-headers resp)
-    "Get response headers"
-    (match resp
+  (define (response-headers response)
+    "Get headers from response"
+    (match response
       ((Response _ headers _) headers)))
+
+  (declare response-body (Response -> String))
+  (define (response-body response)
+    "Get body from response"
+    (match response
+      ((Response _ _ body) body)))
 
   (declare get-header (String -> Headers -> (Optional String)))
   (define (get-header name headers)
     "Get header value by name (case-insensitive)"
     (match headers
-      ((Headers pairs) (find-header-value (string-downcase name) pairs))))
+      ((Headers pairs)
+       (find-header-value (to-lowercase name) pairs))))
 
   (declare find-header-value (String -> (List (Tuple String String)) -> (Optional String)))
   (define (find-header-value name pairs)
-    "Helper to find header value (case-insensitive)"
+    "Find header value in pairs list"
     (match pairs
       ((Nil) None)
       ((Cons (Tuple k v) rest)
-       (if (== (string-downcase k) name)
+       (if (== (to-lowercase k) name)
            (Some v)
            (find-header-value name rest)))))
 
-  (declare string-downcase (String -> String))
-  (define (string-downcase s)
+  (declare to-lowercase (String -> String))
+  (define (to-lowercase s)
     "Convert string to lowercase"
-    (lisp String (s) (cl:string-downcase s))))
+    (lisp String (s)
+      (cl:string-downcase s)))
+
+  ;; Core HTTP request function using drakma
+  (declare http-request (Request -> (Result HttpError Response)))
+  (define (http-request request)
+    "Make HTTP request using drakma"
+    (match request
+      ((Request url method headers body)
+       (lisp (Result HttpError Response) (url method headers body)
+         (cl:handler-case
+             (cl:multiple-value-bind (response-body status-code response-headers)
+                 (cl:apply #'drakma:http-request 
+                           url
+                           (cl:append
+                            (cl:list :method (method-to-keyword method)
+                                     :additional-headers (headers-to-alist headers)
+                                     :want-stream cl:nil
+                                     :timeout 30)
+                            (cl:when body
+                              (cl:list :content body))))
+               ;; Convert response body to string
+               (cl:let ((body-str (cl:if (cl:stringp response-body)
+                                         response-body
+                                         (cl:if (cl:and response-body
+                                                        (cl:typep response-body '(cl:vector cl:unsigned-byte)))
+                                                (flexi-streams:octets-to-string response-body :external-format :utf-8)
+                                                (cl:format cl:nil "~A" response-body)))))
+                 (Ok (Response status-code 
+                               (alist-to-headers response-headers)
+                               body-str))))
+           (cl:error (e)
+             (Err (NetworkError (cl:format cl:nil "HTTP request failed: ~A" e)))))))))
+
+  ;; Convenience functions
+  (declare http-get (String -> (Result HttpError Response)))
+  (define (http-get url)
+    "Make GET request"
+    (http-request (Request url GET (Headers Nil) None)))
+
+  (declare http-post (String -> String -> (Result HttpError Response)))
+  (define (http-post url body)
+    "Make POST request with body"
+    (http-request (Request url POST 
+                          (Headers (make-list (Tuple "Content-Type" "application/json")))
+                          (Some body))))
+
+  (declare http-get-json (String -> (Result HttpError Response)))
+  (define (http-get-json url)
+    "Make GET request expecting JSON response"
+    (http-request (Request url GET 
+                          (Headers (make-list (Tuple "Accept" "application/json")))
+                          None))))

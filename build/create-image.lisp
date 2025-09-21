@@ -65,12 +65,13 @@
         (format t "Loading CSV module...~%")
         (load (merge-pathnames "src/stdlib/smelter-csv.lisp" cwd))
         
-        ;; Load adapters (testing JSON adapter first)
-        (format t "Loading Smelter JSON adapter...~%")
-        (load (merge-pathnames "src/adapters/json.lisp" cwd))
+        ;; Load adapters (commented out until Coalton parsing issue is resolved)
+        ;; (format t "Loading Smelter JSON adapter...~%")
+        ;; (load (merge-pathnames "src/adapters/json.lisp" cwd))
         ;; (load (merge-pathnames "src/adapters/cli.lisp" cwd))
         ;; (load (merge-pathnames "src/adapters/process.lisp" cwd))
         ;; (load (merge-pathnames "src/adapters/http.lisp" cwd))
+        ;; (load (merge-pathnames "src/adapters/fs.lisp" cwd))
         
         (load (merge-pathnames "src/cli.lisp" cwd)))
       
@@ -92,15 +93,17 @@
       (unless (find-package :smelter.stdlib.csv)
         (error "Smelter CSV package not found"))
       
-      ;; Verify adapter packages
-      (unless (find-package :smelter/adapters/json)
-        (error "Smelter JSON adapter package not found"))
+      ;; Verify adapter packages (commented out until adapters are loaded)
+      ;; (unless (find-package :smelter/adapters/json)
+      ;;   (error "Smelter JSON adapter package not found"))
       ;; (unless (find-package :smelter/adapters/cli)
       ;;   (error "Smelter CLI adapter package not found"))
       ;; (unless (find-package :smelter/adapters/process)
       ;;   (error "Smelter Process adapter package not found"))
       ;; (unless (find-package :smelter/adapters/http)
       ;;   (error "Smelter HTTP adapter package not found"))
+      ;; (unless (find-package :smelter/adapters/fs)
+      ;;   (error "Smelter FS adapter package not found"))
       
       (format t "Smelter system loaded successfully.~%")
       
