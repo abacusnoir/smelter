@@ -1,0 +1,73 @@
+#!/usr/bin/env smt run
+
+(coalton-toplevel
+  (use smelter/csv)
+  (use smelter/adapters/cli)
+  (use smelter/stdlib/io)
+
+  (define-type Sale
+    (Sale
+      (product :: String)
+      (units :: Integer)
+      (price :: Double-Float)))
+
+  (declare parse-row (List String -> (Optional Sale)))
+  (define (parse-row row)
+    (match row
+      ((Cons product (Cons units-str (Cons price-str Nil)))
+       (match (string-to-integer units-str)
+         ((Some units)
+          (match (string-to-double price-str)
+            ((Some price) (Some (Sale (product = product) (units = units) (price = price))))
+            ((None) None)))
+         ((None) None)))
+      (_ None)))
+
+  (define (main)
+    (let ((specs
+            (make-list
+              (string-arg "input" "Input CSV file" True)
+              (string-arg "output" "Output report file" True))))
+      (match (parse-args specs (get-command-args))
+        ((Ok args)
+         (match (get-arg-string args "input")
+           ((Ok input-file)
+            (match (get-arg-string args "output")
+              ((Ok output-file) (process-sales-file input-file output-file))
+              ((Err e) (println "Error: Missing output file argument."))))
+           ((Err e) (println "Error: Missing input file argument."))))
+        ((Err e)
+         (progn
+           (println "Error parsing arguments.")
+           (println (generate-help specs))))))))
+
+  (declare process-sales-file (String -> String -> Unit))
+  (define (process-sales-file input-file output-file)
+    (println (mconcat (make-list "Reading sales data from " input-file "...")))
+    (match (read-csv input-file)
+      ((Ok (Cons header rows))
+       (let ((sales (map-optional parse-row rows)))
+         (println (mconcat (make-list "Processed " (show (length sales)) " valid sales records.")))
+         (let ((report (generate-summary sales)))
+           (match (write-csv output-file report)
+             ((Ok _) (println (mconcat (make-list "✅ Successfully wrote summary report to " output-file))))
+             ((Err e) (println (mconcat (make-list "❌ Failed to write report: " (show e)))))))))
+      ((Ok Nil) (println "Error: CSV file is empty or has no header."))
+      ((Err e) (println (mconcat (make-list "❌ Failed to read or parse CSV: " (show e)))))))
+
+  (declare generate-summary ((List Sale) -> CSV))
+  (define (generate-summary sales)
+    (let* ((products (remove-duplicates (map (fn (s) (cell s product)) sales)))
+           (summary-rows
+             (map (fn (p)
+                    (let ((product-sales (filter (fn (s) (== (cell s product) p)) sales)))
+                      (make-list
+                        p
+                        (show (sum (map (fn (s) (cell s units)) product-sales)))
+                        (show (sum (map (fn (s) (* (fromInt (cell s units)) (cell s price))) product-sales))))))
+                  products)))
+      (cons (make-list "Product" "TotalUnitsSold" "TotalRevenue") summary-rows)))
+
+  (declare get-command-args (Unit -> (List String)))
+  (define (get-command-args)
+    (lisp (List String) () (cl:rest sb-ext:*posix-argv*))))

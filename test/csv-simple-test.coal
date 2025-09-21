@@ -1,0 +1,6 @@
+#!/usr/bin/env smt run
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println "Testing CSV module...")
+    (smelter.stdlib.io:io-println "CSV module test completed")))

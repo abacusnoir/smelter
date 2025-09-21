@@ -29,6 +29,7 @@
       (ql:quickload :st-json :silent t)
       (ql:quickload :split-sequence :silent t)
       (ql:quickload :drakma :silent t)
+      (ql:quickload :cl-csv :silent t)
       
       ;; Verify Coalton is loaded
       (unless (find-package :coalton)
@@ -42,18 +43,9 @@
       (format t "Setting up coalton-user package...~%")
       (unless (find-package :coalton-user)
         (defpackage :coalton-user
-          (:use :cl)
-          (:import-from :coalton-prelude
-                        ;; Import core arithmetic and comparison operators
-                        #:+
-                        #:-
-                        #:*
-                        #:/
-                        #:==
-                        #:<
-                        #:>
-                        #:<=
-                        #:>=)))
+          (:use 
+           :cl
+           :coalton-prelude)))
       
       (format t "Coalton loaded successfully.~%")
       
@@ -69,10 +61,13 @@
         (load (merge-pathnames "src/stdlib/smelter-http.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-json.lisp" cwd))
         
+        ;; Load CSV module with qualified types
+        (format t "Loading CSV module...~%")
+        (load (merge-pathnames "src/stdlib/smelter-csv.lisp" cwd))
+        
         ;; Load adapters (testing JSON adapter first)
         (format t "Loading Smelter JSON adapter...~%")
         (load (merge-pathnames "src/adapters/json.lisp" cwd))
-        ;; (load (merge-pathnames "src/adapters/fs.lisp" cwd))
         ;; (load (merge-pathnames "src/adapters/cli.lisp" cwd))
         ;; (load (merge-pathnames "src/adapters/process.lisp" cwd))
         ;; (load (merge-pathnames "src/adapters/http.lisp" cwd))
@@ -93,11 +88,13 @@
       (unless (find-package :smelter)
         (error "Smelter main package not found"))
       
-      ;; Verify JSON adapter package
+      ;; Verify CSV package 
+      (unless (find-package :smelter.stdlib.csv)
+        (error "Smelter CSV package not found"))
+      
+      ;; Verify adapter packages
       (unless (find-package :smelter/adapters/json)
         (error "Smelter JSON adapter package not found"))
-      ;; (unless (find-package :smelter/adapters/fs)
-      ;;   (error "Smelter FS adapter package not found"))
       ;; (unless (find-package :smelter/adapters/cli)
       ;;   (error "Smelter CLI adapter package not found"))
       ;; (unless (find-package :smelter/adapters/process)

@@ -101,6 +101,7 @@ The final binary is self-contained with no runtime dependencies.
 - **[Performance Optimization Achievement](docs/performance-optimization-achievement.md)** - 51.6% startup improvement (88ms → 42.6ms) with lazy loading architecture
 - **[End-to-End Testing Achievement](docs/e2e-testing-achievement.md)** - Comprehensive E2E integration test suite completing the testing pyramid
 - **[CI Integration Achievement](docs/ci-integration-achievement.md)** - Complete CI/CD pipeline with automated testing and code coverage
+- **[Smelter CSV Library](docs/smelter-csv-library.md)** - Type-safe CSV parsing and generation for data processing and report generation
 - **Enhanced JSON Support** - JSON parsing with nested structure handling for objects and arrays
 - **Release Automation** - Complete release pipeline with performance metrics and packaging
 

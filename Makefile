@@ -152,7 +152,18 @@ test-regression-quick:
 	@SKIP_BUILD=1 $(TEST_DIR)/regression/run-regression-tests.sh
 
 # Full test suite (smoke + regression + e2e)
-test-all: test test-regression test-e2e
+test-all: test test-regression test-e2e test-csv
+
+# CSV library tests
+test-csv: $(TARGET)
+	@echo "Running CSV library tests..."
+	@./$(TARGET) run $(TEST_DIR)/csv-test.coal
+
+test-csv-example: $(TARGET)
+	@echo "Running CSV report generator example..."
+	@mkdir -p examples/data
+	@./$(TARGET) run $(EXAMPLES_DIR)/csv-report-generator.coal --input examples/data/sales_data.csv --output /tmp/sales_report.csv
+	@echo "✅ Example run complete. Check the report at /tmp/sales_report.csv"
 
 # Clean build artifacts
 clean:

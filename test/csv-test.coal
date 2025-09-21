@@ -1,0 +1,80 @@
+#!/usr/bin/env smt run
+
+(coalton-toplevel
+  (define test-simple-parsing
+    (fn ()
+      (match (smelter.stdlib.csv:parse-csv "name,age,city\nAlice,30,New York\nBob,25,Boston")
+        ((coalton-library/classes:Ok (smelter.stdlib.csv:CSV csv-data))
+         (if (== (length csv-data) 3)
+             (progn
+               (smelter.stdlib.io:io-println "✓ Simple CSV parsing test passed")
+               True)
+             (progn
+               (smelter.stdlib.io:io-println "✗ Simple CSV parsing test failed - wrong row count")
+               False)))
+        ((coalton-library/classes:Err _)
+         (progn
+           (smelter.stdlib.io:io-println "✗ Simple CSV parsing test failed - parse error")
+           False)))))
+
+  (define test-quoted-fields
+    (fn ()
+      (match (smelter.stdlib.csv:parse-csv "product,description\n\"Laptop\",\"High-end, 16GB RAM\"")
+        ((coalton-library/classes:Ok (smelter.stdlib.csv:CSV csv-data))
+         (if (== (length csv-data) 2)
+             (progn
+               (smelter.stdlib.io:io-println "✓ Quoted fields test passed")
+               True)
+             (progn
+               (smelter.stdlib.io:io-println "✗ Quoted fields test failed - wrong row count")
+               False)))
+        ((coalton-library/classes:Err _)
+         (progn
+           (smelter.stdlib.io:io-println "✗ Quoted fields test failed - parse error")
+           False)))))
+
+  (define test-stringify
+    (fn ()
+      (let ((data (make-list
+                   (make-list "Product" "Price")
+                   (make-list "Apple" "1.99")
+                   (make-list "Banana" "0.59")))
+            (result (smelter.stdlib.csv:stringify-csv (smelter.stdlib.csv:CSV data))))
+        (if (/= result "")
+            (progn
+              (smelter.stdlib.io:io-println "✓ Stringify test passed")
+              (smelter.stdlib.io:io-println (mconcat (make-list "Generated CSV: " result)))
+              True)
+            (progn
+              (smelter.stdlib.io:io-println "✗ Stringify test failed - empty result")
+              False)))))
+
+  (define run-all-tests
+    (fn ()
+      (let ((results (make-list
+                      (test-simple-parsing)
+                      (test-quoted-fields)
+                      (test-stringify))))
+        (let ((passed (fold (fn (acc x) (if x (+ acc 1) acc)) 0 results))
+              (total (length results)))
+          (progn
+            (smelter.stdlib.io:io-println "")
+            (smelter.stdlib.io:io-println (mconcat (make-list "CSV Tests: " 
+                                        (into passed)
+                                        "/" 
+                                        (into total)
+                                        " passed")))
+            (== passed total))))))
+
+  (define main
+    (fn ()
+      (progn
+        (smelter.stdlib.io:io-println "Running Smelter CSV Library Tests...")
+        (smelter.stdlib.io:io-println "")
+        (if (run-all-tests)
+            (progn
+              (smelter.stdlib.io:io-println "All CSV tests passed!")
+              Unit)
+            (progn
+              (smelter.stdlib.io:io-println "Some CSV tests failed!")
+              (lisp Unit () (sb-ext:exit :code 1))))))))

@@ -75,6 +75,10 @@
              ((and (listp inner-form) (eq (first inner-form) 'declare))
               (push inner-form (coalton-script-declarations script)))
              
+             ;; Handle type definitions within coalton-toplevel  
+             ((and (listp inner-form) (eq (first inner-form) 'define-type))
+              (push inner-form (coalton-script-declarations script)))
+             
              ;; Handle definitions within coalton-toplevel
              ((and (listp inner-form) (eq (first inner-form) 'define))
               (let ((def-name (if (listp (second inner-form))
@@ -96,6 +100,10 @@
         
         ;; Handle type declarations
         ((and (listp form) (eq (first form) 'declare))
+         (push form (coalton-script-declarations script)))
+        
+        ;; Handle type definitions
+        ((and (listp form) (eq (first form) 'define-type))
          (push form (coalton-script-declarations script)))
         
         ;; Handle definitions
@@ -134,11 +142,11 @@
   (let ((forms (coalton-script-definitions script)))
     (with-output-to-string (out)
       ;; Set up coalton-user package which has proper Coalton environment
-      (format out "(progn~%")
-      (format out "  (in-package :coalton-user)~%")
+      (format out "(cl:progn~%")
+      (format out "  (cl:in-package :coalton-user)~%")
       ;; Import smelter standard library functions
-      (format out "  (ignore-errors (use-package :smelter.stdlib.io :coalton-user))~%")
-      (format out "  (ignore-errors (use-package :smelter.stdlib.system :coalton-user))~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.io :coalton-user))~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%")
       
       (if (= (length forms) 1)
           ;; Single expression: evaluate directly in coalton context
@@ -228,11 +236,11 @@
   (if (and (not for-repl) (string-contains-p "coalton-toplevel" content))
       ;; Already has coalton-toplevel, just wrap in basic execution context
       (with-output-to-string (out)
-        (format out "(progn~%")
-        (format out "  (in-package :coalton-user)~%")
+        (format out "(cl:progn~%")
+        (format out "  (cl:in-package :coalton-user)~%")
         (format out "  ;; Import Smelter standard libraries~%")
-        (format out "  (ignore-errors (use-package :smelter.stdlib.io :coalton-user))~%")
-        (format out "  (ignore-errors (use-package :smelter.stdlib.system :coalton-user))~%")
+        (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.io :coalton-user))~%")
+        (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%")
         (format out "  ~A)" content))
       ;; Standard translation path
       (let ((script (parse-coalton-file content)))
