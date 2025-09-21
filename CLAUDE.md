@@ -102,6 +102,7 @@ The final binary is self-contained with no runtime dependencies.
 - **[End-to-End Testing Achievement](docs/e2e-testing-achievement.md)** - Comprehensive E2E integration test suite completing the testing pyramid
 - **[CI Integration Achievement](docs/ci-integration-achievement.md)** - Complete CI/CD pipeline with automated testing and code coverage
 - **[Smelter CSV Library](docs/smelter-csv-library.md)** - Type-safe CSV parsing and generation for data processing and report generation
+- **[Smelter Adapter Implementation](docs/smelter-adapter-implementation.md)** - Complete I/O adapter system: HTTP, JSON, File System, Process, and CLI adapters
 - **Enhanced JSON Support** - JSON parsing with nested structure handling for objects and arrays
 - **Release Automation** - Complete release pipeline with performance metrics and packaging
 
