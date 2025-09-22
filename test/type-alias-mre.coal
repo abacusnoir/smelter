@@ -1,0 +1,16 @@
+#!/usr/bin/env smt run
+
+;; test/type-alias-mre.coal
+;; Minimal Reproducible Example for type alias bug
+(coalton-toplevel
+  (define-type MyAlias coalton:String)
+
+  (declare my-func (MyAlias -> MyAlias))
+  (define (my-func x)
+    x)
+
+  (define main
+    (fn ()
+      (do
+        (println "MRE loaded successfully.")
+        Unit))))

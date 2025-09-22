@@ -1,6 +1,27 @@
 #!/usr/bin/env smt run
 
-(define main
-  (progn
-    (smelter.stdlib.io:io-println "Testing CSV module...")
-    (smelter.stdlib.io:io-println "CSV module test completed")))
+(coalton-toplevel
+  (define test-csv-parse
+    (fn ()
+      (progn
+        (smelter.stdlib.io:io-println "Testing CSV parsing...")
+        (lisp Boolean ()
+          (cl:handler-case
+              (cl:progn
+                (smelter.stdlib.csv:parse-csv "a,b,c\n1,2,3")
+                (smelter.stdlib.io:io-println "✓ CSV parsing test passed")
+                cl:t)
+            (cl:error (e)
+              (cl:declare (cl:ignore e))
+              (smelter.stdlib.io:io-println "✗ CSV parsing test failed")
+              cl:nil))))))
+
+  (define main
+    (fn ()
+      (progn
+        (smelter.stdlib.io:io-println "Running simple CSV test...")
+        (let ((result (test-csv-parse)))
+          (if result
+              (smelter.stdlib.io:io-println "All CSV tests passed!")
+              (smelter.stdlib.io:io-println "CSV tests failed!")))
+        Unit))))

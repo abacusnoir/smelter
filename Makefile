@@ -157,14 +157,7 @@ test-all: test test-regression test-e2e test-csv
 # CSV library tests
 test-csv: $(TARGET)
 	@echo "Running CSV library tests..."
-	@echo "Testing CSV module loading..."
-	@if ./$(TARGET) eval '(smelter.stdlib.csv:parse-csv "a,b\n1,2")' >/dev/null 2>&1; then \
-		echo "✓ CSV module loads and parse function works"; \
-	else \
-		echo "✗ CSV module test failed"; \
-		exit 1; \
-	fi
-	@echo "CSV tests completed successfully"
+	@./$(TARGET) run $(TEST_DIR)/csv-test.coal
 
 test-csv-example: $(TARGET)
 	@echo "Running CSV report generator example..."

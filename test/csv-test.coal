@@ -4,7 +4,7 @@
   (define test-simple-parsing
     (fn ()
       (match (smelter.stdlib.csv:parse-csv "name,age,city\nAlice,30,New York\nBob,25,Boston")
-        ((coalton-library/classes:Ok (smelter.stdlib.csv:CSV csv-data))
+        ((Ok (smelter.stdlib.csv:CSV csv-data))
          (if (== (length csv-data) 3)
              (progn
                (smelter.stdlib.io:io-println "✓ Simple CSV parsing test passed")
@@ -12,7 +12,7 @@
              (progn
                (smelter.stdlib.io:io-println "✗ Simple CSV parsing test failed - wrong row count")
                False)))
-        ((coalton-library/classes:Err _)
+        ((Err _)
          (progn
            (smelter.stdlib.io:io-println "✗ Simple CSV parsing test failed - parse error")
            False)))))
@@ -20,7 +20,7 @@
   (define test-quoted-fields
     (fn ()
       (match (smelter.stdlib.csv:parse-csv "product,description\n\"Laptop\",\"High-end, 16GB RAM\"")
-        ((coalton-library/classes:Ok (smelter.stdlib.csv:CSV csv-data))
+        ((Ok (smelter.stdlib.csv:CSV csv-data))
          (if (== (length csv-data) 2)
              (progn
                (smelter.stdlib.io:io-println "✓ Quoted fields test passed")
@@ -28,7 +28,7 @@
              (progn
                (smelter.stdlib.io:io-println "✗ Quoted fields test failed - wrong row count")
                False)))
-        ((coalton-library/classes:Err _)
+        ((Err _)
          (progn
            (smelter.stdlib.io:io-println "✗ Quoted fields test failed - parse error")
            False)))))
