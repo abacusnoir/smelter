@@ -32,7 +32,7 @@
       ((TestFail name reason)
        (io:io-println (mconcat (make-list "❌ " name " - " reason))))))
 
-  (declare count-passed ((List TestResult) -> UFix))
+  (declare count-passed ((List TestResult) -> Integer))
   (define (count-passed results)
     "Count the number of passing tests in a list of results."
     (fold (fn (acc result)
@@ -47,7 +47,7 @@
     "Run a list of test-case functions and print a summary report."
     (let ((results (map (fn (test) (test)) tests)))
       (let ((passed (count-passed results))
-            (total (length results)))
+            (total (into (length results))))
         (progn
           (io:io-println (mconcat (make-list "=== " title " ===")))
           (map print-result results)

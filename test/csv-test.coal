@@ -30,10 +30,48 @@
               (result (smelter.stdlib.csv:stringify-csv (smelter.stdlib.csv:CSV data))))
           (/= result "")))))
 
+  (declare test-read-write-csv (Unit -> smelter.stdlib.test:TestResult))
+  (define test-read-write-csv
+    (smelter.stdlib.test:test-case "CSV file read/write operations"
+      (fn ()
+        (let ((test-file "/tmp/smelter-csv-test.csv")
+              (test-data (smelter.stdlib.csv:CSV 
+                          (make-list
+                           (make-list "Name" "Age" "City")
+                           (make-list "Alice" "30" "New York")
+                           (make-list "Bob" "25" "Boston")))))
+          (match (smelter.stdlib.csv:write-csv test-file test-data)
+            ((Ok _)
+             (match (smelter.stdlib.csv:read-csv test-file)
+               ((Ok (smelter.stdlib.csv:CSV read-data))
+                (== (length read-data) 3))
+               ((Err _) False)))
+            ((Err _) False))))))
+
+  (declare test-empty-csv (Unit -> smelter.stdlib.test:TestResult))
+  (define test-empty-csv
+    (smelter.stdlib.test:test-case "Empty CSV handling"
+      (fn ()
+        (match (smelter.stdlib.csv:parse-csv "")
+          ((Ok (smelter.stdlib.csv:CSV csv-data))
+           (== (length csv-data) 0))
+          ((Err _) False)))))
+
+  (declare test-escaped-quotes (Unit -> smelter.stdlib.test:TestResult))
+  (define test-escaped-quotes
+    (smelter.stdlib.test:test-case "Escaped quotes in CSV fields"
+      (fn ()
+        (match (smelter.stdlib.csv:parse-csv "name,quote\n\"Alice\",\"She said \"\"Hello\"\" to me\"")
+          ((Ok (smelter.stdlib.csv:CSV csv-data))
+           (== (length csv-data) 2))
+          ((Err _) False)))))
 
   (define main
     (smelter.stdlib.test:run-test-suite "Smelter CSV Library Tests"
       (make-list
        test-simple-parsing
        test-quoted-fields
-       test-stringify)))))
+       test-stringify
+       test-read-write-csv
+       test-empty-csv
+       test-escaped-quotes))))
