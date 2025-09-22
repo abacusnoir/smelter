@@ -65,10 +65,14 @@
         (format t "Loading CSV module...~%")
         (load (merge-pathnames "src/stdlib/smelter-csv.lisp" cwd))
         
-        ;; Load JSON adapter only for testing
+        ;; Load test module
+        (format t "Loading test module...~%")
+        (load (merge-pathnames "src/stdlib/smelter-test.lisp" cwd))
+        
+        ;; Load just JSON adapter for now to test the test library
         (format t "Loading Smelter JSON adapter...~%")
         (load (merge-pathnames "src/adapters/json.lisp" cwd))
-        ;; Other adapters disabled for now
+        ;; Other adapters disabled temporarily
         ;; (load (merge-pathnames "src/adapters/cli.lisp" cwd))
         ;; (load (merge-pathnames "src/adapters/process.lisp" cwd))
         ;; (load (merge-pathnames "src/adapters/http.lisp" cwd))
@@ -94,10 +98,14 @@
       (unless (find-package :smelter.stdlib.csv)
         (error "Smelter CSV package not found"))
       
+      ;; Verify test package
+      (unless (find-package :smelter.stdlib.test)
+        (error "Smelter test package not found"))
+      
       ;; Verify JSON adapter package
       (unless (find-package :smelter/adapters/json)
         (error "Smelter JSON adapter package not found"))
-      ;; Other adapter packages verification disabled for now
+      ;; Other adapter packages verification disabled temporarily
       ;; (unless (find-package :smelter/adapters/cli)
       ;;   (error "Smelter CLI adapter package not found"))
       ;; (unless (find-package :smelter/adapters/process)

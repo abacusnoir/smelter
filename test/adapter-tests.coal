@@ -1,217 +1,141 @@
 #!/usr/bin/env smt run
 
 (coalton-toplevel
-  (define-type TestResult 
-    (TestPass String)
-    (TestFail String String))
+  (use smelter/test)
+  (use smelter/adapters/json)
+  (use smelter/adapters/fs)
+  (use smelter/adapters/process)
+  (use smelter/adapters/cli)
+  (use smelter/adapters/http)
 
-  (declare run-test (String -> (() -> Boolean) -> TestResult))
-  (define (run-test name test-fn)
-    "Run a single test and return result"
-    (if (test-fn)
-        (TestPass name)
-        (TestFail name "Test assertion failed")))
+  (declare test-json-parser (Unit -> TestResult))
+  (define test-json-parser
+    (test-case "JSON Parser"
+      (fn ()
+        (match (parse-json "{\"test\": true, \"number\": 42}")
+          ((Ok json-val)
+           (match (json-get "test" json-val)
+             ((Ok (JSONBool True)) True)
+             (_ False)))
+          (_ False)))))
 
-  (declare run-test-suite ((List (() -> TestResult)) -> Unit))
-  (define (run-test-suite tests)
-    "Run all tests and report results"
-    (let ((results (map (fn (test) (test)) tests)))
-      (progn
-        (println "=== Smelter Adapter Test Suite ===")
-        (print-results results))))
+  (declare test-json-stringify (Unit -> TestResult))
+  (define test-json-stringify
+    (test-case "JSON Stringify"
+      (fn ()
+        (let ((obj (json-object (make-list (Tuple "hello" (JSONString "world"))))))
+          (== (stringify-json obj) "{\"hello\":\"world\"}")))))
 
-  (declare print-results ((List TestResult) -> Unit))
-  (define (print-results results)
-    "Print test results summary"
-    (let ((passed (count-passed results))
-          (total (length results)))
-      (progn
-        (map print-result results)
-        (println "")
-        (println (mconcat (make-list "Tests: " (show passed) "/" (show total) " passed")))
-        (if (== passed total)
-            (println "✅ All tests passed!")
-            (println "❌ Some tests failed!")))))
+  (declare test-json-path-access (Unit -> TestResult))
+  (define test-json-path-access
+    (test-case "JSON Path Access"
+      (fn ()
+        (match (parse-json "{\"user\": {\"name\": \"Alice\"}}")
+          ((Ok json-val)
+           (match (json-get-string "user.name" json-val)
+             ((Ok name) (== name "Alice"))
+             (_ False)))
+          (_ False)))))
 
-  (declare print-result (TestResult -> Unit))
-  (define (print-result result)
-    "Print individual test result"
-    (match result
-      ((TestPass name)
-       (println (mconcat (make-list "✅ " name))))
-      ((TestFail name reason)
-       (println (mconcat (make-list "❌ " name " - " reason))))))
-
-  (declare count-passed ((List TestResult) -> Integer))
-  (define (count-passed results)
-    "Count number of passed tests"
-    (match results
-      ((Nil) 0)
-      ((Cons (TestPass _) rest) (+ 1 (count-passed rest)))
-      ((Cons (TestFail _ _) rest) (count-passed rest))))
-
-  (declare test-json-parser () -> TestResult)
-  (define (test-json-parser)
-    "Test JSON parsing functionality"
-    (progn
-      (use smelter/adapters/json)
-      (run-test "JSON Parser" 
-        (fn ()
-          (match (parse-json "{\"test\": true, \"number\": 42}")
-            ((Ok json-val)
-             (match (json-get "test" json-val)
-               ((Ok (JSONBool True)) True)
+  (declare test-fs-operations (Unit -> TestResult))
+  (define test-fs-operations
+    (test-case "FS Operations"
+      (fn ()
+        (let ((test-file "/tmp/smelter-test-file.txt")
+              (test-content "Hello, Smelter!"))
+          (match (write-file test-file test-content)
+            ((Ok _)
+             (match (read-file test-file)
+               ((Ok content)
+                (progn
+                  (delete-file test-file)
+                  (== content test-content)))
                (_ False)))
             (_ False))))))
 
-  (declare test-json-stringify () -> TestResult)
-  (define (test-json-stringify)
-    "Test JSON stringification"
-    (progn
-      (use smelter/adapters/json)
-      (run-test "JSON Stringify"
-        (fn ()
-          (let ((obj (json-object (make-list (Tuple "hello" (JSONString "world"))))))
-            (== (stringify-json obj) "{\"hello\":\"world\"}"))))))
+  (declare test-fs-file-info (Unit -> TestResult))
+  (define test-fs-file-info
+    (test-case "FS File Info"
+      (fn ()
+        (let ((test-file "/tmp/smelter-info-test.txt"))
+          (match (write-file test-file "test data")
+            ((Ok _)
+             (match (get-file-info test-file)
+               ((Ok (FileInfo size _ is-dir filename))
+                (progn
+                  (delete-file test-file)
+                  (and (> size 0) (not is-dir))))
+               (_ False)))
+            (_ False))))))
 
-  (declare test-json-path-access () -> TestResult)
-  (define (test-json-path-access)
-    "Test JSON dot-notation path access"
-    (progn
-      (use smelter/adapters/json)
-      (run-test "JSON Path Access"
-        (fn ()
-          (match (parse-json "{\"user\": {\"name\": \"Alice\"}}")
-            ((Ok json-val)
-             (match (json-get-string "user.name" json-val)
+  (declare test-process-execution (Unit -> TestResult))
+  (define test-process-execution
+    (test-case "Process Execution"
+      (fn ()
+        (match (run-process "echo test")
+          ((Ok result)
+           (let ((stdout (process-stdout result))
+                 (exit-code (process-exit-code result)))
+             (and (== exit-code 0) 
+                  (string-contains? stdout "test"))))
+          (_ False)))))
+
+  (declare test-process-with-input (Unit -> TestResult))
+  (define test-process-with-input
+    (test-case "Process With Input"
+      (fn ()
+        (match (run-process-with-input "cat" "hello input")
+          ((Ok result)
+           (let ((stdout (process-stdout result)))
+             (string-contains? stdout "hello input")))
+          (_ False)))))
+
+  (declare test-cli-parsing (Unit -> TestResult))
+  (define test-cli-parsing
+    (test-case "CLI Parsing"
+      (fn ()
+        (let ((specs (make-list 
+                       (string-arg "name" "User name" True)
+                       (boolean-arg "verbose" "Verbose output" False))))
+          (match (parse-args specs (make-list "--name" "Alice" "--verbose"))
+            ((Ok args)
+             (match (get-arg-string args "name")
                ((Ok name) (== name "Alice"))
                (_ False)))
             (_ False))))))
 
-  (declare test-fs-operations () -> TestResult)
-  (define (test-fs-operations)
-    "Test file system operations"
-    (progn
-      (use smelter/adapters/fs)
-      (run-test "FS Operations"
-        (fn ()
-          (let ((test-file "/tmp/smelter-test-file.txt")
-                (test-content "Hello, Smelter!"))
-            (match (write-file test-file test-content)
-              ((Ok _)
-               (match (read-file test-file)
-                 ((Ok content)
-                  (progn
-                    (delete-file test-file)
-                    (== content test-content)))
-                 (_ False)))
-              (_ False)))))))
-
-  (declare test-fs-file-info () -> TestResult)
-  (define (test-fs-file-info)
-    "Test file info retrieval"
-    (progn
-      (use smelter/adapters/fs)
-      (run-test "FS File Info"
-        (fn ()
-          (let ((test-file "/tmp/smelter-info-test.txt"))
-            (match (write-file test-file "test data")
-              ((Ok _)
-               (match (get-file-info test-file)
-                 ((Ok (FileInfo size _ is-dir filename))
-                  (progn
-                    (delete-file test-file)
-                    (and (> size 0) (not is-dir))))
-                 (_ False)))
-              (_ False)))))))
-
-  (declare test-process-execution () -> TestResult)
-  (define (test-process-execution)
-    "Test process execution"
-    (progn
-      (use smelter/adapters/process)
-      (run-test "Process Execution"
-        (fn ()
-          (match (run-process "echo test")
-            ((Ok result)
-             (let ((stdout (process-stdout result))
-                   (exit-code (process-exit-code result)))
-               (and (== exit-code 0) 
-                    (string-contains? stdout "test"))))
+  (declare test-cli-boolean-args (Unit -> TestResult))
+  (define test-cli-boolean-args
+    (test-case "CLI Boolean Args"
+      (fn ()
+        (let ((specs (make-list (boolean-arg "flag" "Test flag" False))))
+          (match (parse-args specs (make-list "--flag"))
+            ((Ok args)
+             (match (get-arg-boolean args "flag")
+               ((Ok flag-val) flag-val)
+               (_ False)))
             (_ False))))))
 
-  (declare test-process-with-input () -> TestResult)
-  (define (test-process-with-input)
-    "Test process with stdin input"
-    (progn
-      (use smelter/adapters/process)
-      (run-test "Process With Input"
-        (fn ()
-          (match (run-process-with-input "cat" "hello input")
-            ((Ok result)
-             (let ((stdout (process-stdout result)))
-               (string-contains? stdout "hello input")))
-            (_ False))))))
+  (declare test-http-requests (Unit -> TestResult))
+  (define test-http-requests
+    (test-case "HTTP Requests"
+      (fn ()
+        (match (http-get "https://httpbin.org/get")
+          ((Ok response)
+           (== (response-status response) 200))
+          (_ False)))))
 
-  (declare test-cli-parsing () -> TestResult)
-  (define (test-cli-parsing)
-    "Test CLI argument parsing"
-    (progn
-      (use smelter/adapters/cli)
-      (run-test "CLI Parsing"
-        (fn ()
-          (let ((specs (make-list 
-                         (string-arg "name" "User name" True)
-                         (boolean-arg "verbose" "Verbose output" False))))
-            (match (parse-args specs (make-list "--name" "Alice" "--verbose"))
-              ((Ok args)
-               (match (get-arg-string args "name")
-                 ((Ok name) (== name "Alice"))
-                 (_ False)))
-              (_ False)))))))
-
-  (declare test-cli-boolean-args () -> TestResult)
-  (define (test-cli-boolean-args)
-    "Test CLI boolean argument handling"
-    (progn
-      (use smelter/adapters/cli)
-      (run-test "CLI Boolean Args"
-        (fn ()
-          (let ((specs (make-list (boolean-arg "flag" "Test flag" False))))
-            (match (parse-args specs (make-list "--flag"))
-              ((Ok args)
-               (match (get-arg-boolean args "flag")
-                 ((Ok flag-val) flag-val)
-                 (_ False)))
-              (_ False)))))))
-
-  (declare test-http-requests () -> TestResult)
-  (define (test-http-requests)
-    "Test HTTP request functionality (requires network)"
-    (progn
-      (use smelter/adapters/http)
-      (run-test "HTTP Requests"
-        (fn ()
-          (match (http-get "https://httpbin.org/get")
-            ((Ok response)
-             (== (response-status response) 200))
-            (_ False))))))
-
-  (declare test-http-json-response () -> TestResult)
-  (define (test-http-json-response)
-    "Test HTTP JSON response handling"
-    (progn
-      (use smelter/adapters/http)
-      (use smelter/adapters/json)
-      (run-test "HTTP JSON Response"
-        (fn ()
-          (match (http-get-json "https://httpbin.org/json")
-            ((Ok response)
-             (let ((body (response-body response)))
-               (match (parse-json body)
-                 ((Ok _) True)
-                 (_ False))))
-            (_ False))))))
+  (declare test-http-json-response (Unit -> TestResult))
+  (define test-http-json-response
+    (test-case "HTTP JSON Response"
+      (fn ()
+        (match (http-get-json "https://httpbin.org/json")
+          ((Ok response)
+           (let ((body (response-body response)))
+             (match (parse-json body)
+               ((Ok _) True)
+               (_ False))))
+          (_ False)))))
 
   (declare string-contains? (String -> String -> Boolean))
   (define (string-contains? haystack needle)
@@ -219,19 +143,17 @@
     (lisp Boolean (haystack needle)
       (cl:search needle haystack)))
 
-  (declare main Unit)
   (define main
-    "Main test runner"
-    (run-test-suite
+    (run-test-suite "Smelter Adapter Tests"
       (make-list
-        test-json-parser
-        test-json-stringify
-        test-json-path-access
-        test-fs-operations
-        test-fs-file-info
-        test-process-execution
-        test-process-with-input
-        test-cli-parsing
-        test-cli-boolean-args
-        test-http-requests
-        test-http-json-response))))
+       test-json-parser
+       test-json-stringify
+       test-json-path-access
+       test-fs-operations
+       test-fs-file-info
+       test-process-execution
+       test-process-with-input
+       test-cli-parsing
+       test-cli-boolean-args
+       test-http-requests
+       test-http-json-response))))
