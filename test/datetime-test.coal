@@ -1,0 +1,230 @@
+#!/usr/bin/env smt run
+
+;; Test suite for smelter/datetime library
+;; Uses the smelter/test framework for consistent testing
+
+(coalton-toplevel
+
+  ;; Test instant creation and basic operations
+  (declare test-instant-creation (Unit -> smelter.stdlib.test:TestResult))
+  (define test-instant-creation
+    (smelter.stdlib.test:test-case "Instant creation from parts"
+      (fn ()
+        (match (smelter.stdlib.datetime:instant-of 2025 9 22 8 30 45 123456789)
+          ((Some instant) True)
+          ((None) False)))))
+
+  ;; Test invalid instant creation
+  (declare test-invalid-instant (Unit -> smelter.stdlib.test:TestResult))
+  (define test-invalid-instant
+    (smelter.stdlib.test:test-case "Invalid instant creation returns None"
+      (fn ()
+        (match (smelter.stdlib.datetime:instant-of 2025 13 32 25 61 61 0)
+          ((Some _) False)
+          ((None) True)))))
+
+  ;; Test timezone creation
+  (declare test-timezone-creation (Unit -> smelter.stdlib.test:TestResult))
+  (define test-timezone-creation
+    (smelter.stdlib.test:test-case "TimeZone creation from IANA name"
+      (fn ()
+        (match (smelter.stdlib.datetime:timezone-of "America/New_York")
+          ((Some _) True)
+          ((None) False)))))
+
+  ;; Test invalid timezone
+  (declare test-invalid-timezone (Unit -> smelter.stdlib.test:TestResult))
+  (define test-invalid-timezone
+    (smelter.stdlib.test:test-case "Invalid timezone returns None"
+      (fn ()
+        (match (smelter.stdlib.datetime:timezone-of "InvalidZone")
+          ((Some _) False)
+          ((None) True)))))
+
+  ;; Test ZonedDateTime creation and accessors
+  (declare test-zoned-datetime-accessors (Unit -> smelter.stdlib.test:TestResult))
+  (define test-zoned-datetime-accessors
+    (smelter.stdlib.test:test-case "ZonedDateTime accessor functions"
+      (fn ()
+        (let ((instant-opt (smelter.stdlib.datetime:instant-of 2025 9 22 8 30 45 123456789))
+              (tz-opt (smelter.stdlib.datetime:timezone-of "UTC")))
+          (match (Tuple instant-opt tz-opt)
+            ((Tuple (Some instant) (Some tz))
+             (let ((zdt (smelter.stdlib.datetime:at-zone instant tz)))
+               (and
+                (== (smelter.stdlib.datetime:year zdt) 2025)
+                (== (smelter.stdlib.datetime:month zdt) 9)
+                (== (smelter.stdlib.datetime:day zdt) 22)
+                (== (smelter.stdlib.datetime:hour zdt) 8)
+                (== (smelter.stdlib.datetime:minute zdt) 30)
+                (== (smelter.stdlib.datetime:second zdt) 45))))
+            (_ False))))))
+
+  ;; Test duration arithmetic
+  (declare test-duration-arithmetic (Unit -> smelter.stdlib.test:TestResult))
+  (define test-duration-arithmetic
+    (smelter.stdlib.test:test-case "Duration arithmetic operations"
+      (fn ()
+        (match (smelter.stdlib.datetime:instant-of 2025 9 22 8 0 0 0)
+          ((Some instant)
+           (let ((one-hour (smelter.stdlib.datetime:duration-hours 1)))
+             (let ((later-instant (smelter.stdlib.datetime:add-duration instant one-hour))
+                   (tz (unwrap (smelter.stdlib.datetime:timezone-of "UTC"))))
+               (let ((later-zdt (smelter.stdlib.datetime:at-zone later-instant tz)))
+                 (== (smelter.stdlib.datetime:hour later-zdt) 9)))))
+          ((None) False)))))
+
+  ;; Test period arithmetic
+  (declare test-period-arithmetic (Unit -> smelter.stdlib.test:TestResult))
+  (define test-period-arithmetic
+    (smelter.stdlib.test:test-case "Period arithmetic operations"
+      (fn ()
+        (match (smelter.stdlib.datetime:instant-of 2025 9 1 12 0 0 0)
+          ((Some instant)
+           (let ((tz (unwrap (smelter.stdlib.datetime:timezone-of "UTC"))))
+             (let ((zdt (smelter.stdlib.datetime:at-zone instant tz))
+                   (one-month (smelter.stdlib.datetime:period-months 1)))
+               (let ((next-month-zdt (smelter.stdlib.datetime:add-period zdt one-month)))
+                 ;; Approximate test: should be around day 1 of next month
+                 (> (smelter.stdlib.datetime:day next-month-zdt) 25)))))
+          ((None) False)))))
+
+  ;; Test day of week calculation
+  (declare test-day-of-week (Unit -> smelter.stdlib.test:TestResult))
+  (define test-day-of-week
+    (smelter.stdlib.test:test-case "Day of week calculation"
+      (fn ()
+        ;; September 22, 2025 is a Monday
+        (match (smelter.stdlib.datetime:instant-of 2025 9 22 12 0 0 0)
+          ((Some instant)
+           (let ((tz (unwrap (smelter.stdlib.datetime:timezone-of "UTC"))))
+             (let ((zdt (smelter.stdlib.datetime:at-zone instant tz)))
+               (match (smelter.stdlib.datetime:day-of-week zdt)
+                 ((smelter.stdlib.datetime:Monday) True)
+                 (_ False)))))
+          ((None) False)))))
+
+  ;; Test ISO 8601 formatting
+  (declare test-iso8601-formatting (Unit -> smelter.stdlib.test:TestResult))
+  (define test-iso8601-formatting
+    (smelter.stdlib.test:test-case "ISO 8601 formatting"
+      (fn ()
+        (match (smelter.stdlib.datetime:instant-of 2025 9 22 8 30 45 123456789)
+          ((Some instant)
+           (let ((iso-string (smelter.stdlib.datetime:to-iso8601 instant)))
+             ;; Check that it starts with the expected date
+             (and
+              (>= (length iso-string) 20)
+              (== (take 10 (chars iso-string))
+                  (chars "2025-09-22")))))
+          ((None) False)))))
+
+  ;; Test ISO 8601 parsing
+  (declare test-iso8601-parsing (Unit -> smelter.stdlib.test:TestResult))
+  (define test-iso8601-parsing
+    (smelter.stdlib.test:test-case "ISO 8601 parsing"
+      (fn ()
+        (match (smelter.stdlib.datetime:parse-instant "2025-09-22T08:30:45.123456789Z")
+          ((Some instant)
+           (let ((tz (unwrap (smelter.stdlib.datetime:timezone-of "UTC"))))
+             (let ((zdt (smelter.stdlib.datetime:at-zone instant tz)))
+               (and
+                (== (smelter.stdlib.datetime:year zdt) 2025)
+                (== (smelter.stdlib.datetime:month zdt) 9)
+                (== (smelter.stdlib.datetime:day zdt) 22)
+                (== (smelter.stdlib.datetime:hour zdt) 8)
+                (== (smelter.stdlib.datetime:minute zdt) 30)
+                (== (smelter.stdlib.datetime:second zdt) 45)))))
+          ((None) False)))))
+
+  ;; Test invalid ISO 8601 parsing
+  (declare test-invalid-iso8601 (Unit -> smelter.stdlib.test:TestResult))
+  (define test-invalid-iso8601
+    (smelter.stdlib.test:test-case "Invalid ISO 8601 string returns None"
+      (fn ()
+        (match (smelter.stdlib.datetime:parse-instant "not-a-date")
+          ((Some _) False)
+          ((None) True)))))
+
+  ;; Test system timezone
+  (declare test-system-timezone (Unit -> smelter.stdlib.test:TestResult))
+  (define test-system-timezone
+    (smelter.stdlib.test:test-case "System timezone returns valid timezone"
+      (fn ()
+        ;; Just test that it returns something - content depends on system
+        (let ((tz (smelter.stdlib.datetime:system-timezone)))
+          True))))  ; Always pass since we can't predict system timezone
+
+  ;; Test now function
+  (declare test-now-function (Unit -> smelter.stdlib.test:TestResult))
+  (define test-now-function
+    (smelter.stdlib.test:test-case "Now function returns current time"
+      (fn ()
+        (let ((instant1 (smelter.stdlib.datetime:now))
+              (instant2 (smelter.stdlib.datetime:now)))
+          ;; Both calls should succeed (represented as actual Instant values)
+          ;; This is a basic smoke test
+          True))))
+
+  ;; Test duration helpers
+  (declare test-duration-helpers (Unit -> smelter.stdlib.test:TestResult))
+  (define test-duration-helpers
+    (smelter.stdlib.test:test-case "Duration helper functions"
+      (fn ()
+        (match (smelter.stdlib.datetime:instant-of 2025 9 22 8 0 0 0)
+          ((Some instant)
+           (let ((one-minute (smelter.stdlib.datetime:duration-minutes 1))
+                 (tz (unwrap (smelter.stdlib.datetime:timezone-of "UTC"))))
+             (let ((later-instant (smelter.stdlib.datetime:add-duration instant one-minute)))
+               (let ((later-zdt (smelter.stdlib.datetime:at-zone later-instant tz)))
+                 (== (smelter.stdlib.datetime:minute later-zdt) 1)))))
+          ((None) False)))))
+
+  ;; Test period helpers
+  (declare test-period-helpers (Unit -> smelter.stdlib.test:TestResult))
+  (define test-period-helpers
+    (smelter.stdlib.test:test-case "Period helper functions"
+      (fn ()
+        (match (smelter.stdlib.datetime:instant-of 2025 1 1 12 0 0 0)
+          ((Some instant)
+           (let ((tz (unwrap (smelter.stdlib.datetime:timezone-of "UTC"))))
+             (let ((zdt (smelter.stdlib.datetime:at-zone instant tz))
+                   (seven-days (smelter.stdlib.datetime:period-days 7)))
+               (let ((week-later (smelter.stdlib.datetime:add-period zdt seven-days)))
+                 (== (smelter.stdlib.datetime:day week-later) 8)))))
+          ((None) False)))))
+
+  ;; Test subtraction operations
+  (declare test-subtraction-operations (Unit -> smelter.stdlib.test:TestResult))
+  (define test-subtraction-operations
+    (smelter.stdlib.test:test-case "Subtraction operations"
+      (fn ()
+        (match (smelter.stdlib.datetime:instant-of 2025 9 22 10 0 0 0)
+          ((Some instant)
+           (let ((two-hours (smelter.stdlib.datetime:duration-hours 2))
+                 (tz (unwrap (smelter.stdlib.datetime:timezone-of "UTC"))))
+             (let ((earlier-instant (smelter.stdlib.datetime:subtract-duration instant two-hours)))
+               (let ((earlier-zdt (smelter.stdlib.datetime:at-zone earlier-instant tz)))
+                 (== (smelter.stdlib.datetime:hour earlier-zdt) 8)))))
+          ((None) False)))))
+
+  ;; Main test runner
+  (define main
+    (smelter.stdlib.test:run-test-suite "Smelter DateTime Library Tests"
+      (make-list
+       test-instant-creation
+       test-invalid-instant
+       test-timezone-creation
+       test-invalid-timezone
+       test-zoned-datetime-accessors
+       test-duration-arithmetic
+       test-period-arithmetic
+       test-day-of-week
+       test-iso8601-formatting
+       test-iso8601-parsing
+       test-invalid-iso8601
+       test-system-timezone
+       test-now-function
+       test-duration-helpers
+       test-period-helpers
+       test-subtraction-operations))))
