@@ -1,0 +1,109 @@
+#!/usr/bin/env smt run
+
+(coalton-toplevel
+  ;; Test primitive JSON value parsing
+  (declare test-parse-string (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-string
+    (smelter.stdlib.test:test-case "Parse JSON string"
+      (fn ()
+        (match (smelter/json:parse-json "\"hello world\"")
+          ((Ok (smelter/json:JsonString s))
+           (== s "hello world"))
+          (_ False)))))
+
+  (declare test-parse-integer (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-integer
+    (smelter.stdlib.test:test-case "Parse JSON integer"
+      (fn ()
+        (match (smelter/json:parse-json "42")
+          ((Ok (smelter/json:JsonNumber n))
+           (== n 42))
+          (_ False)))))
+
+  (declare test-parse-true (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-true
+    (smelter.stdlib.test:test-case "Parse JSON true"
+      (fn ()
+        (match (smelter/json:parse-json "true")
+          ((Ok (smelter/json:JsonBool b)) b)
+          (_ False)))))
+
+  (declare test-parse-false (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-false
+    (smelter.stdlib.test:test-case "Parse JSON false"
+      (fn ()
+        (match (smelter/json:parse-json "false")
+          ((Ok (smelter/json:JsonBool b)) (not b))
+          (_ False)))))
+
+  (declare test-parse-null (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-null
+    (smelter.stdlib.test:test-case "Parse JSON null"
+      (fn ()
+        (match (smelter/json:parse-json "null")
+          ((Ok val)
+           (match val
+             ((smelter/json:JsonNull) True)
+             (_ False)))
+          (_ False)))))
+
+  ;; Test error handling
+  (declare test-parse-malformed-json (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-malformed-json
+    (smelter.stdlib.test:test-case "Handle malformed JSON"
+      (fn ()
+        (let ((bad-json "{\"unclosed\": \"string}"))
+          (match (smelter/json:parse-json bad-json)
+            ((Err (smelter/json:ParseError _)) True)
+            (_ False))))))
+
+  (declare test-parse-invalid-syntax (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-invalid-syntax
+    (smelter.stdlib.test:test-case "Handle invalid JSON syntax"
+      (fn ()
+        (let ((invalid-json "{key: value}"))  ; missing quotes around key
+          (match (smelter/json:parse-json invalid-json)
+            ((Err (smelter/json:ParseError _)) True)
+            (_ False))))))
+
+  ;; Test encoding functionality (basic)
+  (declare test-stringify-primitives (Unit -> smelter.stdlib.test:TestResult))
+  (define test-stringify-primitives
+    (smelter.stdlib.test:test-case "Stringify JSON primitives"
+      (fn ()
+        (and (== (smelter/json:stringify-json smelter/json:JsonNull) "null")
+             (== (smelter/json:stringify-json (smelter/json:JsonBool True)) "true")
+             (== (smelter/json:stringify-json (smelter/json:JsonBool False)) "false")
+             (== (smelter/json:stringify-json (smelter/json:JsonNumber 42)) "42")
+             (== (smelter/json:stringify-json (smelter/json:JsonString "hello")) "\"hello\"")))))
+
+  ;; Test round-trip for primitives
+  (declare test-round-trip-primitives (Unit -> smelter.stdlib.test:TestResult))
+  (define test-round-trip-primitives
+    (smelter.stdlib.test:test-case "Round-trip JSON primitives"
+      (fn ()
+        (match (smelter/json:parse-json "\"test string\"")
+          ((Ok json-val)
+           (let ((json-str (smelter/json:stringify-json json-val)))
+             ;; Parse the encoded JSON to verify it's valid
+             (match (smelter/json:parse-json json-str)
+               ((Ok _) True)
+               (_ False))))
+          (_ False)))))
+
+  ;; Main function to run all tests
+  (define main
+    (smelter.stdlib.test:run-test-suite "JSON Adapter Tests (Basic)"
+      (make-list
+       ;; Primitive parsing tests
+       test-parse-string
+       test-parse-integer
+       test-parse-true
+       test-parse-false
+       test-parse-null
+       ;; Error handling tests
+       test-parse-malformed-json
+       test-parse-invalid-syntax
+       ;; Encoding tests
+       test-stringify-primitives
+       test-round-trip-primitives))))

@@ -1,0 +1,35 @@
+#!/usr/bin/env smt run
+
+(coalton-toplevel
+  (define main
+    (progn
+      (smelter.stdlib.io:io-println "Testing JSON parsing...")
+
+      ;; Test basic string parsing
+      (match (smelter/json:parse-json "\"hello\"")
+        ((Ok json-val)
+         (progn
+           (smelter.stdlib.io:io-println "✓ String parsing success")
+           (smelter.stdlib.io:io-println (smelter/json:stringify-json json-val))))
+        ((Err _)
+         (smelter.stdlib.io:io-println "✗ String parsing failed")))
+
+      ;; Test number parsing
+      (match (smelter/json:parse-json "42")
+        ((Ok json-val)
+         (progn
+           (smelter.stdlib.io:io-println "✓ Number parsing success")
+           (smelter.stdlib.io:io-println (smelter/json:stringify-json json-val))))
+        ((Err _)
+         (smelter.stdlib.io:io-println "✗ Number parsing failed")))
+
+      ;; Test boolean parsing
+      (match (smelter/json:parse-json "true")
+        ((Ok json-val)
+         (progn
+           (smelter.stdlib.io:io-println "✓ Boolean parsing success")
+           (smelter.stdlib.io:io-println (smelter/json:stringify-json json-val))))
+        ((Err _)
+         (smelter.stdlib.io:io-println "✗ Boolean parsing failed")))
+
+      (smelter.stdlib.io:io-println "JSON tests completed!"))))
