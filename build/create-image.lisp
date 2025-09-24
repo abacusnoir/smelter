@@ -43,10 +43,22 @@
       (format t "Setting up coalton-user package...~%")
       (unless (find-package :coalton-user)
         (defpackage :coalton-user
-          (:use 
+          (:use
            :cl
-           :coalton-prelude)))
-      
+           :coalton
+           :coalton-prelude
+           :coalton-library/classes
+           :coalton-library/result)
+          (:local-nicknames
+           (#:result #:coalton-library/result)
+           (#:classes #:coalton-library/classes))))
+
+      ;; Unlock coalton-library packages to allow macro expansion
+      (format t "Unlocking Coalton library packages for macro expansion...~%")
+      (sb-ext:unlock-package :coalton-library/classes)
+      (when (find-package :coalton-library/result)
+        (sb-ext:unlock-package :coalton-library/result))
+
       (format t "Coalton loaded successfully.~%")
       
       ;; Load Smelter components directly  

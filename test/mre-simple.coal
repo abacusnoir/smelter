@@ -1,0 +1,19 @@
+#!/usr/bin/env smt run
+
+(coalton-toplevel
+  ;; Test with stdlib JSON which has working Result usage
+  (define main
+    (progn
+      (smelter.stdlib.io:io-println "Testing JSON Result usage...")
+      (match (smelter/json:parse-json "\"hello world\"")
+        ((Ok json-val)
+         (smelter.stdlib.io:io-println "✓ JSON parsing with Result works!"))
+        ((Err _)
+         (smelter.stdlib.io:io-println "✗ JSON parsing failed")))
+
+      (smelter.stdlib.io:io-println "Testing Tuple creation...")
+      (let ((pair (Tuple 42 "answer")))
+        (match pair
+          ((Tuple n s)
+           (smelter.stdlib.io:io-println
+            (mconcat (make-list "✓ Tuple works: " (into n) " - " s)))))))))

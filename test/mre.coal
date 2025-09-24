@@ -1,0 +1,19 @@
+#!/usr/bin/env smt run
+
+(coalton-toplevel
+  (define-type MyError (MyError String))
+
+  (declare my-function (Unit -> (Result MyError (Tuple Integer String))))
+  (define (my-function _)
+    (Ok (Tuple 1 "hello")))
+
+  (define main
+    (progn
+      (smelter.stdlib.io:io-println "Testing Result and Tuple types...")
+      (match (my-function Unit)
+        ((Ok (Tuple n s))
+         (smelter.stdlib.io:io-println
+          (mconcat (make-list "Success: " (into n) " - " s))))
+        ((Err (MyError msg))
+         (smelter.stdlib.io:io-println
+          (mconcat (make-list "Error: " msg))))))))
