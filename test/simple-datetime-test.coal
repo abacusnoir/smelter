@@ -1,0 +1,47 @@
+#!/usr/bin/env smt run
+
+(coalton-toplevel
+
+  (define (test-basic-instant-creation)
+    "Test basic Instant creation and validation."
+    (fn ()
+      (match (smelter.stdlib.datetime:instant-of 2025 9 22 8 30 45 0)
+        ((coalton-prelude:Some _) True)
+        ((coalton-prelude:None) False))))
+
+  (define (test-invalid-date-handling)
+    "Test that invalid dates return None."
+    (fn ()
+      (match (smelter.stdlib.datetime:instant-of 2025 13 32 25 61 61 0)
+        ((coalton-prelude:Some _) False)
+        ((coalton-prelude:None) True))))
+
+  (define (test-timezone-creation)
+    "Test TimeZone creation from IANA name."
+    (fn ()
+      (match (smelter.stdlib.datetime:timezone-of "America/New_York")
+        ((coalton-prelude:Some _) True)
+        ((coalton-prelude:None) False))))
+
+  (define (test-duration-creation)
+    "Test Duration creation from seconds."
+    (fn ()
+      (let ((duration (smelter.stdlib.datetime:duration-seconds 3600)))
+        True)))  ; If we get here without error, the test passes
+
+  (define (test-period-creation)
+    "Test Period creation from days."
+    (fn ()
+      (let ((period (smelter.stdlib.datetime:period-days 7)))
+        True)))  ; If we get here without error, the test passes
+
+  (define main
+    (fn ()
+      (let ((tests
+             (make-list
+              (smelter.stdlib.test:test-case "Basic instant creation" (test-basic-instant-creation))
+              (smelter.stdlib.test:test-case "Invalid date handling" (test-invalid-date-handling))
+              (smelter.stdlib.test:test-case "TimeZone creation" (test-timezone-creation))
+              (smelter.stdlib.test:test-case "Duration creation" (test-duration-creation))
+              (smelter.stdlib.test:test-case "Period creation" (test-period-creation)))))
+        (smelter.stdlib.test:run-test-suite "Basic DateTime Tests" tests)))))

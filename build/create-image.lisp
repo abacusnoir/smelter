@@ -69,9 +69,9 @@
         (format t "Loading test module...~%")
         (load (merge-pathnames "src/stdlib/smelter-test.lisp" cwd))
 
-        ;; Load datetime module (temporarily disabled)
-        ;; (format t "Loading datetime module...~%")
-        ;; (load (merge-pathnames "src/stdlib/smelter-datetime.lisp" cwd))
+        ;; Load datetime module
+        (format t "Loading datetime module...~%")
+        (load (merge-pathnames "src/stdlib/smelter-datetime.lisp" cwd))
         
         ;; Load just JSON adapter for now to test the test library
         (format t "Loading Smelter JSON adapter...~%")
@@ -106,9 +106,9 @@
       (unless (find-package :smelter.stdlib.test)
         (error "Smelter test package not found"))
 
-      ;; Verify datetime package (temporarily disabled)
-      ;; (unless (find-package :smelter.stdlib.datetime)
-      ;;   (error "Smelter datetime package not found"))
+      ;; Verify datetime package
+      (unless (find-package :smelter.stdlib.datetime)
+        (error "Smelter datetime package not found"))
       
       ;; Verify JSON adapter package
       (unless (find-package :smelter/adapters/json)
