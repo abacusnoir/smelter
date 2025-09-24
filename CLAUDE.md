@@ -112,6 +112,9 @@ The final binary is self-contained with no runtime dependencies.
 - **Core Features**: Ultra-fast arithmetic, basic evaluation, JSON primitives, file I/O foundations
 - **Competitive Position**: Faster than Ruby (62ms), competitive with Python (29ms) and Node.js (35ms)
 
+### Recent Major Fixes
+- **[Package System Fix](docs/package-system-fix.md)** - Critical fix resolving package lock violations that prevented Result/Tuple usage in user scripts, enabling modern Coalton functional patterns
+
 ### Known Limitations
 - **[SBCL Runtime Limitations](docs/sbcl-runtime-limitations.md)** - CLI argument handling limitations inherited from SBCL
 - **Limited Standard Library**: JSON and HTTP functions not yet exposed to user scripts (available internally)
