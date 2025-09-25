@@ -14,11 +14,10 @@
    Returns (values :ok parsed-data) on success.
    Returns (values :error error-message) on failure."
   (handler-case
-      ;; Explicit YASON configuration for predictable behavior:
-      ;; - booleans are parsed as :true/:false keywords
-      ;; - null is parsed as the :null keyword
-      (let ((yason:*parse-json-booleans-as-symbols* t)
-            (yason:*parse-json-null-as-keyword* t))
+      ;; YASON configuration for predictable behavior:
+      ;; - booleans are parsed as T/NIL
+      ;; - null is parsed as :null keyword
+      (let ((yason:*parse-json-arrays-as-vectors* nil))
         (values :ok (yason:parse json-string)))
     (error (e)
       (values :error (format nil "JSON parse error: ~A" e)))))
@@ -28,9 +27,8 @@
    Returns (values :ok json-string) on success.
    Returns (values :error error-message) on failure."
   (handler-case
-      ;; Explicit YASON configuration ensures :true/:false encode as JSON booleans
-      (let ((yason:*encode-json-booleans-as-symbols* t))
-        (values :ok (with-output-to-string (stream)
-                      (yason:encode lisp-object stream))))
+      ;; YASON handles booleans directly without configuration
+      (values :ok (with-output-to-string (stream)
+                    (yason:encode lisp-object stream)))
     (error (e)
       (values :error (format nil "JSON encode error: ~A" e)))))

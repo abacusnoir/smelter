@@ -6,104 +6,176 @@
   (define test-parse-string
     (smelter.stdlib.test:test-case "Parse JSON string"
       (fn ()
-        (match (smelter/json:parse-json "\"hello world\"")
-          ((Ok (smelter/json:JsonString s))
+        (match (smelter.stdlib.json:parse-json "\"hello world\"")
+          ((Ok (smelter.stdlib.json:JsonString s))
            (== s "hello world"))
           (_ False)))))
 
-  (declare test-parse-integer (Unit -> smelter.stdlib.test:TestResult))
-  (define test-parse-integer
-    (smelter.stdlib.test:test-case "Parse JSON integer"
+  (declare test-parse-number (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-number
+    (smelter.stdlib.test:test-case "Parse JSON number"
       (fn ()
-        (match (smelter/json:parse-json "42")
-          ((Ok (smelter/json:JsonNumber n))
-           (== n 42))
+        (match (smelter.stdlib.json:parse-json "42.5")
+          ((Ok (smelter.stdlib.json:JsonNumber n))
+           (== n 42.5d0))
           (_ False)))))
 
   (declare test-parse-true (Unit -> smelter.stdlib.test:TestResult))
   (define test-parse-true
     (smelter.stdlib.test:test-case "Parse JSON true"
       (fn ()
-        (match (smelter/json:parse-json "true")
-          ((Ok (smelter/json:JsonBool b)) b)
+        (match (smelter.stdlib.json:parse-json "true")
+          ((Ok (smelter.stdlib.json:JsonBool b)) b)
           (_ False)))))
 
   (declare test-parse-false (Unit -> smelter.stdlib.test:TestResult))
   (define test-parse-false
     (smelter.stdlib.test:test-case "Parse JSON false"
       (fn ()
-        (match (smelter/json:parse-json "false")
-          ((Ok (smelter/json:JsonBool b)) (not b))
+        (match (smelter.stdlib.json:parse-json "false")
+          ((Ok (smelter.stdlib.json:JsonBool b)) (not b))
           (_ False)))))
 
   (declare test-parse-null (Unit -> smelter.stdlib.test:TestResult))
   (define test-parse-null
     (smelter.stdlib.test:test-case "Parse JSON null"
       (fn ()
-        (match (smelter/json:parse-json "null")
+        (match (smelter.stdlib.json:parse-json "null")
           ((Ok val)
            (match val
-             ((smelter/json:JsonNull) True)
+             ((smelter.stdlib.json:JsonNull) True)
              (_ False)))
           (_ False)))))
 
-  ;; Test error handling
-  (declare test-parse-malformed-json (Unit -> smelter.stdlib.test:TestResult))
-  (define test-parse-malformed-json
-    (smelter.stdlib.test:test-case "Handle malformed JSON"
+  ;; Test nested array parsing
+  (declare test-parse-array (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-array
+    (smelter.stdlib.test:test-case "Parse JSON array with nested values"
       (fn ()
-        (let ((bad-json "{\"unclosed\": \"string}"))
-          (match (smelter/json:parse-json bad-json)
-            ((Err (smelter/json:ParseError _)) True)
+        (match (smelter.stdlib.json:parse-json "[1, \"hello\", true, null, [2, 3]]")
+          ((Ok (smelter.stdlib.json:JsonArray items))
+           ;; Verify we have 5 items
+           (== (length items) 5))
+          (_ False)))))
+
+  ;; Test nested object parsing
+  (declare test-parse-object (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-object
+    (smelter.stdlib.test:test-case "Parse JSON object with nested structures"
+      (fn ()
+        (let ((complex-json "{\"name\": \"test\", \"count\": 42, \"active\": true, \"meta\": {\"version\": 1.2}, \"items\": [1, 2, 3]}"))
+          (match (smelter.stdlib.json:parse-json complex-json)
+            ((Ok (smelter.stdlib.json:JsonObject pairs))
+             ;; Verify we have 5 key-value pairs
+             (== (length pairs) 5))
             (_ False))))))
 
-  (declare test-parse-invalid-syntax (Unit -> smelter.stdlib.test:TestResult))
-  (define test-parse-invalid-syntax
+  ;; Test get-field success case
+  (declare test-get-field-success (Unit -> smelter.stdlib.test:TestResult))
+  (define test-get-field-success
+    (smelter.stdlib.test:test-case "Get field from JSON object successfully"
+      (fn ()
+        (let ((json-str "{\"username\": \"alice\", \"age\": 30}"))
+          (match (smelter.stdlib.json:parse-json json-str)
+            ((Ok json-obj)
+             (match (smelter.stdlib.json:get-field "username" json-obj)
+               ((Ok (smelter.stdlib.json:JsonString name))
+                (== name "alice"))
+               (_ False)))
+            (_ False))))))
+
+  ;; Test get-field not found error
+  (declare test-get-field-not-found (Unit -> smelter.stdlib.test:TestResult))
+  (define test-get-field-not-found
+    (smelter.stdlib.test:test-case "Get field returns FieldNotFound error"
+      (fn ()
+        (let ((json-str "{\"username\": \"alice\"}"))
+          (match (smelter.stdlib.json:parse-json json-str)
+            ((Ok json-obj)
+             (match (smelter.stdlib.json:get-field "missing-key" json-obj)
+               ((Err (smelter.stdlib.json:FieldNotFound _)) True)
+               (_ False)))
+            (_ False))))))
+
+  ;; Test get-field type mismatch error
+  (declare test-get-field-type-mismatch (Unit -> smelter.stdlib.test:TestResult))
+  (define test-get-field-type-mismatch
+    (smelter.stdlib.test:test-case "Get field returns TypeMismatch error for non-object"
+      (fn ()
+        (let ((json-str "[1, 2, 3]"))
+          (match (smelter.stdlib.json:parse-json json-str)
+            ((Ok json-val)
+             (match (smelter.stdlib.json:get-field "key" json-val)
+               ((Err (smelter.stdlib.json:TypeMismatch _ _)) True)
+               (_ False)))
+            (_ False))))))
+
+  ;; Test parsing invalid JSON
+  (declare test-parse-invalid-json (Unit -> smelter.stdlib.test:TestResult))
+  (define test-parse-invalid-json
     (smelter.stdlib.test:test-case "Handle invalid JSON syntax"
       (fn ()
         (let ((invalid-json "{key: value}"))  ; missing quotes around key
-          (match (smelter/json:parse-json invalid-json)
-            ((Err (smelter/json:ParseError _)) True)
+          (match (smelter.stdlib.json:parse-json invalid-json)
+            ((Err (smelter.stdlib.json:ParseError _)) True)
             (_ False))))))
 
-  ;; Test encoding functionality (basic)
-  (declare test-stringify-primitives (Unit -> smelter.stdlib.test:TestResult))
-  (define test-stringify-primitives
-    (smelter.stdlib.test:test-case "Stringify JSON primitives"
+  ;; Test round-trip with complex JSON
+  (declare test-round-trip-complex (Unit -> smelter.stdlib.test:TestResult))
+  (define test-round-trip-complex
+    (smelter.stdlib.test:test-case "Round-trip complex JSON structure"
       (fn ()
-        (and (== (smelter/json:stringify-json smelter/json:JsonNull) "null")
-             (== (smelter/json:stringify-json (smelter/json:JsonBool True)) "true")
-             (== (smelter/json:stringify-json (smelter/json:JsonBool False)) "false")
-             (== (smelter/json:stringify-json (smelter/json:JsonNumber 42)) "42")
-             (== (smelter/json:stringify-json (smelter/json:JsonString "hello")) "\"hello\"")))))
+        (let ((complex-json "{\"user\": {\"name\": \"Alice\", \"scores\": [95, 87, 92]}, \"active\": true}"))
+          (match (smelter.stdlib.json:parse-json complex-json)
+            ((Ok json-val)
+             ;; Encode back to JSON string
+             (match (smelter.stdlib.json:encode-json json-val)
+               ((Ok encoded-str)
+                ;; Parse the encoded JSON to verify it's semantically correct
+                (match (smelter.stdlib.json:parse-json encoded-str)
+                  ((Ok _) True)  ; Successfully parsed back
+                  (_ False)))
+               (_ False)))
+            (_ False))))))
 
-  ;; Test round-trip for primitives
-  (declare test-round-trip-primitives (Unit -> smelter.stdlib.test:TestResult))
-  (define test-round-trip-primitives
-    (smelter.stdlib.test:test-case "Round-trip JSON primitives"
+  ;; Test encoding primitives
+  (declare test-encode-primitives (Unit -> smelter.stdlib.test:TestResult))
+  (define test-encode-primitives
+    (smelter.stdlib.test:test-case "Encode JSON primitives to strings"
       (fn ()
-        (match (smelter/json:parse-json "\"test string\"")
-          ((Ok json-val)
-           (let ((json-str (smelter/json:stringify-json json-val)))
-             ;; Parse the encoded JSON to verify it's valid
-             (match (smelter/json:parse-json json-str)
-               ((Ok _) True)
-               (_ False))))
+        (match (smelter.stdlib.json:encode-json smelter.stdlib.json:JsonNull)
+          ((Ok null-str)
+           (match (smelter.stdlib.json:encode-json (smelter.stdlib.json:JsonBool True))
+             ((Ok true-str)
+               (match (smelter.stdlib.json:encode-json (smelter.stdlib.json:JsonString "test"))
+                 ((Ok str-str)
+                   (and (== null-str "null")
+                        (== true-str "true")
+                        (== str-str "\"test\"")))
+                 (_ False)))
+             (_ False)))
           (_ False)))))
 
   ;; Main function to run all tests
   (define main
-    (smelter.stdlib.test:run-test-suite "JSON Adapter Tests (Basic)"
+    (smelter.stdlib.test:run-test-suite "JSON Adapter Tests (Comprehensive)"
       (make-list
        ;; Primitive parsing tests
        test-parse-string
-       test-parse-integer
+       test-parse-number
        test-parse-true
        test-parse-false
        test-parse-null
+       ;; Nested structure tests
+       test-parse-array
+       test-parse-object
+       ;; Field access tests
+       test-get-field-success
+       test-get-field-not-found
+       test-get-field-type-mismatch
        ;; Error handling tests
-       test-parse-malformed-json
-       test-parse-invalid-syntax
+       test-parse-invalid-json
+       ;; Round-trip tests
+       test-round-trip-complex
        ;; Encoding tests
-       test-stringify-primitives
-       test-round-trip-primitives))))
+       test-encode-primitives))))

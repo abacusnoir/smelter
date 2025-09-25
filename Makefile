@@ -152,7 +152,12 @@ test-regression-quick:
 	@SKIP_BUILD=1 $(TEST_DIR)/regression/run-regression-tests.sh
 
 # Full test suite (smoke + regression + e2e)
-test-all: test test-regression test-e2e test-csv test-datetime
+test-all: test test-regression test-e2e test-json test-csv test-datetime
+
+# JSON library tests
+test-json: $(TARGET)
+	@echo "Running JSON library tests..."
+	@./$(TARGET) run $(TEST_DIR)/json-test.coal
 
 # CSV library tests
 test-csv: $(TARGET)

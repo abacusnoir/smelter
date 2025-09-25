@@ -26,7 +26,7 @@
       
       ;; Load adapter dependencies
       (format t "Loading adapter dependencies...~%")
-      (ql:quickload :st-json :silent t)
+      (ql:quickload :yason :silent t)
       (ql:quickload :split-sequence :silent t)
       (ql:quickload :drakma :silent t)
       (ql:quickload :cl-csv :silent t)
@@ -71,7 +71,12 @@
         (load (merge-pathnames "src/stdlib/smelter-system.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-file.lisp" cwd))
         (load (merge-pathnames "src/stdlib/smelter-http.lisp" cwd))
-        (load (merge-pathnames "src/stdlib/smelter-json.lisp" cwd))
+        ;; Skip old smelter-json.lisp - replaced by new JSON adapter
+
+        ;; Load JSON bridge and adapter
+        (format t "Loading JSON bridge and adapter...~%")
+        (load (merge-pathnames "src/bridge/json.lisp" cwd))
+        (load (merge-pathnames "src/stdlib/json.lisp" cwd))
         
         ;; Load CSV module with qualified types
         (format t "Loading CSV module...~%")
@@ -85,9 +90,7 @@
         (format t "Loading datetime module...~%")
         (load (merge-pathnames "src/stdlib/smelter-datetime.lisp" cwd))
         
-        ;; Load just JSON adapter for now to test the test library
-        (format t "Loading Smelter JSON adapter...~%")
-        (load (merge-pathnames "src/adapters/json.lisp" cwd))
+        ;; Skip old JSON adapter - using new comprehensive JSON library
         ;; Other adapters disabled temporarily
         ;; (load (merge-pathnames "src/adapters/cli.lisp" cwd))
         ;; (load (merge-pathnames "src/adapters/process.lisp" cwd))
@@ -122,9 +125,9 @@
       (unless (find-package :smelter.stdlib.datetime)
         (error "Smelter datetime package not found"))
       
-      ;; Verify JSON adapter package
-      (unless (find-package :smelter/adapters/json)
-        (error "Smelter JSON adapter package not found"))
+      ;; Verify new JSON library package
+      (unless (find-package :smelter.stdlib.json)
+        (error "Smelter JSON library package not found"))
       ;; Other adapter packages verification disabled temporarily
       ;; (unless (find-package :smelter/adapters/cli)
       ;;   (error "Smelter CLI adapter package not found"))
