@@ -76,7 +76,7 @@
         ;; Load JSON bridge and adapter
         (format t "Loading JSON bridge and adapter...~%")
         (load (merge-pathnames "src/bridge/json.lisp" cwd))
-        (load (merge-pathnames "src/stdlib/json.lisp" cwd))
+        (load (merge-pathnames "src/stdlib/json-simple.lisp" cwd))
         
         ;; Load CSV module with qualified types
         (format t "Loading CSV module...~%")
