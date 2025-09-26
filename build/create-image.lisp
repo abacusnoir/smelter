@@ -60,7 +60,56 @@
         (sb-ext:unlock-package :coalton-library/result))
 
       (format t "Coalton loaded successfully.~%")
-      
+
+      ;; Critical fix: Export ADT symbols immediately after Coalton loading
+      (format t "Exporting ADT symbols for pattern matching...~%")
+
+      ;; Export Result ADT symbols using runtime string-to-symbol conversion with correct pipe names
+      (handler-case
+          (let ((classes-pkg (find-package :coalton-library/classes)))
+            (when classes-pkg
+              (format t "Exporting Result ADT symbols...~%")
+              ;; Export both regular names and pipe-delimited names that Coalton generates
+              (let ((result-symbols (list
+                                     ;; Regular names
+                                     (intern "RESULT/OK" classes-pkg)
+                                     (intern "RESULT/ERR" classes-pkg)
+                                     (intern "RESULT/OK-_0" classes-pkg)
+                                     (intern "RESULT/ERR-_0" classes-pkg)
+                                     ;; Pipe-delimited names that Coalton actually uses
+                                     (intern "result/ok" classes-pkg)
+                                     (intern "result/err" classes-pkg)
+                                     (intern "result/ok-_0" classes-pkg)
+                                     (intern "result/err-_0" classes-pkg))))
+                (dolist (sym result-symbols)
+                  (when sym
+                    ;; Try to export regardless of whether it's bound - the symbol just needs to exist
+                    (export sym classes-pkg)
+                    (format t "Exported symbol: ~A~%" sym))))))
+        (error (e)
+          (format t "Warning: Could not export Result symbols: ~A~%" e)))
+
+      ;; Export Optional ADT symbols if they exist
+      (handler-case
+          (let ((classes-pkg (find-package :coalton-library/classes)))
+            (when (and classes-pkg (find-symbol "OPTIONAL/SOME" classes-pkg))
+              (format t "Exporting Optional ADT symbols...~%")
+              (let ((optional-symbols (list
+                                       ;; Regular names
+                                       (intern "OPTIONAL/SOME" classes-pkg)
+                                       (intern "OPTIONAL/NONE" classes-pkg)
+                                       (intern "OPTIONAL/SOME-_0" classes-pkg)
+                                       ;; Pipe-delimited names that Coalton actually uses
+                                       (intern "optional/some" classes-pkg)
+                                       (intern "optional/none" classes-pkg)
+                                       (intern "optional/some-_0" classes-pkg))))
+                (dolist (sym optional-symbols)
+                  (when sym
+                    (export sym classes-pkg)
+                    (format t "Exported optional symbol: ~A~%" sym))))))
+        (error (e)
+          (format t "Warning: Could not export Optional symbols: ~A~%" e)))
+
       ;; Load Smelter components directly  
       (format t "Loading Smelter components...~%")
       (let ((cwd (uiop:getcwd)))
@@ -142,8 +191,149 @@
       
       ;; Test basic functionality
       (format t "Testing Coalton functionality...~%")
-      (format t "Coalton test passed: basic loading successful~%"))
-  
+      (format t "Coalton test passed: basic loading successful~%")
+
+      ;; Critical fix: Register ADT types in SBCL's type system for pattern matching
+      (format t "Registering ADT types in SBCL's type system...~%")
+
+      ;; STEP 1: Register ADT types in SBCL's type system
+      (handler-case
+          (progn
+            (format t "Registering Result ADT types...~%")
+
+            ;; Define Result type predicates that work with the actual instances
+            (let ((classes-pkg (find-package :coalton-library/classes)))
+              (when classes-pkg
+                ;; Define predicates using runtime symbol creation
+                (let ((ok-pred-name (intern "RESULT/OK-TYPE-P" classes-pkg))
+                      (err-pred-name (intern "RESULT/ERR-TYPE-P" classes-pkg)))
+
+                  ;; Create the predicate functions
+                  (setf (symbol-function ok-pred-name)
+                        (lambda (x)
+                          (and (typep x 'structure-object)
+                               (let ((type-name (type-of x)))
+                                 (and (symbolp type-name)
+                                      (string= (symbol-name type-name) "RESULT/OK")
+                                      (string= (package-name (symbol-package type-name)) "COALTON-LIBRARY/CLASSES"))))))
+
+                  (setf (symbol-function err-pred-name)
+                        (lambda (x)
+                          (and (typep x 'structure-object)
+                               (let ((type-name (type-of x)))
+                                 (and (symbolp type-name)
+                                      (string= (symbol-name type-name) "RESULT/ERR")
+                                      (string= (package-name (symbol-package type-name)) "COALTON-LIBRARY/CLASSES"))))))
+
+                  ;; Register the types using SBCL's deftype with runtime symbol creation
+                  ;; Register both regular and pipe-delimited versions
+                  (eval `(deftype ,(intern "result/ok" classes-pkg) ()
+                           '(satisfies ,ok-pred-name)))
+                  (eval `(deftype ,(intern "result/err" classes-pkg) ()
+                           '(satisfies ,err-pred-name)))
+
+                  (format t "Registered Result types with pipe names successfully.~%"))))
+
+            (format t "Result ADT types registered successfully.~%"))
+        (error (e)
+          (format t "Warning: Could not register Result types: ~A~%" e)))
+
+      ;; STEP 2: Register Optional ADT types if they exist
+      (handler-case
+          (when (find-symbol "OPTIONAL/SOME" :coalton-library/classes)
+            (format t "Registering Optional ADT types...~%")
+
+            (let ((classes-pkg (find-package :coalton-library/classes)))
+              (when classes-pkg
+                ;; Define predicates using runtime symbol creation
+                (let ((some-pred-name (intern "OPTIONAL/SOME-TYPE-P" classes-pkg))
+                      (none-pred-name (intern "OPTIONAL/NONE-TYPE-P" classes-pkg)))
+
+                  ;; Create the predicate functions
+                  (setf (symbol-function some-pred-name)
+                        (lambda (x)
+                          (and (typep x 'structure-object)
+                               (let ((type-name (type-of x)))
+                                 (and (symbolp type-name)
+                                      (string= (symbol-name type-name) "OPTIONAL/SOME")
+                                      (string= (package-name (symbol-package type-name)) "COALTON-LIBRARY/CLASSES"))))))
+
+                  (setf (symbol-function none-pred-name)
+                        (lambda (x)
+                          (and (typep x 'structure-object)
+                               (let ((type-name (type-of x)))
+                                 (and (symbolp type-name)
+                                      (string= (symbol-name type-name) "OPTIONAL/NONE")
+                                      (string= (package-name (symbol-package type-name)) "COALTON-LIBRARY/CLASSES"))))))
+
+                  ;; Register the types using SBCL's deftype with runtime symbol creation
+                  (eval `(deftype ,(intern "optional/some" classes-pkg) ()
+                           '(satisfies ,some-pred-name)))
+                  (eval `(deftype ,(intern "optional/none" classes-pkg) ()
+                           '(satisfies ,none-pred-name)))
+
+                  (format t "Registered Optional types with pipe names successfully.~%"))))
+
+            (format t "Optional ADT types registered successfully.~%"))
+        (error (e)
+          (format t "Warning: Could not register Optional types: ~A~%" e)))
+
+      ;; STEP 3: Force pattern matching compilation and execution to ensure runtime structures exist
+      (handler-case
+          (progn
+            (format t "Forcing comprehensive pattern matching compilation...~%")
+
+            ;; Test basic Coalton functionality first
+            (let ((*package* (find-package :coalton-user)))
+              (eval (read-from-string "(coalton:coalton (+ 1 2))")))
+
+            ;; Force Result pattern matching compilation AND execution to create runtime accessors
+            (format t "Testing Result pattern matching compilation and execution...~%")
+            (let ((*package* (find-package :coalton-user)))
+              (eval (read-from-string
+"(coalton:coalton-toplevel
+  (declare force-result-test (Integer -> Integer))
+  (define force-result-test
+    (fn (dummy)
+      (match (Ok 42)
+        ((Ok x) (+ x 1))
+        ((Err _) 0)))))"))
+
+              ;; CRITICAL: Execute the pattern matching to force accessor function creation
+              (let ((test-fn (find-symbol "FORCE-RESULT-TEST" :coalton-user)))
+                (when test-fn
+                  (let ((result (funcall (symbol-function test-fn) 0)))
+                    (format t "Result pattern matching executed successfully, result: ~A~%" result)))))
+
+            ;; Force Optional pattern matching compilation AND execution to create runtime accessors
+            (format t "Testing Optional pattern matching compilation and execution...~%")
+            (let ((*package* (find-package :coalton-user)))
+              (eval (read-from-string
+"(coalton:coalton-toplevel
+  (declare force-optional-test (Integer -> Integer))
+  (define force-optional-test
+    (fn (dummy)
+      (match (Some 5)
+        ((Some x) x)
+        (None 0)))))"))
+
+              ;; CRITICAL: Execute the pattern matching to force accessor function creation
+              (let ((test-fn (find-symbol "FORCE-OPTIONAL-TEST" :coalton-user)))
+                (when test-fn
+                  (let ((result (funcall (symbol-function test-fn) 0)))
+                    (format t "Optional pattern matching executed successfully, result: ~A~%" result)))))
+
+            (format t "Pattern matching ADT runtime structures created and executed successfully.~%")
+
+            (format t "Pattern matching compilation and execution completed successfully.~%"))
+
+        (error (e)
+          (format t "Error in pattern matching initialization: ~A~%" e)
+          ;; Continue anyway - this is not fatal
+          ))
+
+      (format t "ADT symbol export and type registration completed.~%"))
+
   (error (e)
     (format t "Error loading systems: ~A~%" e)
     (sb-ext:exit :code 1)))
