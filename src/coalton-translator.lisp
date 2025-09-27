@@ -150,12 +150,13 @@
       
       (if (= (length forms) 1)
           ;; Single expression: evaluate directly in coalton context
-          (format out "  (coalton:coalton ~S))" (first forms))
+          (format out "  (coalton:coalton ~S)" (first forms))
           ;; Multiple forms: wrap in toplevel
           (progn
             (format out "  (coalton:coalton-toplevel~%")
             (dolist (form forms)
-              (format out "    ~S~%" form))
+              (format out "    ~S~%"
+ form))
             (format out "  ))"))))))
 
 (defun qualify-cl-symbols (form)
@@ -209,7 +210,8 @@
         (format out "  (coalton:coalton-toplevel~%")
         ;; Add user's Coalton code
         (dolist (form coalton-forms)
-          (format out "    ~S~%" form))
+          (format out "    ~S~%"
+ form))
         (format out "  )~%~%"))
       
       ;; Add Common Lisp forms directly (outside coalton-toplevel) with qualification
