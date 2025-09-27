@@ -61,21 +61,12 @@
 ;;; Coalton environment setup
 (defun setup-coalton-environment ()
   "Ensure Coalton is loaded and ready"
-  (handler-case
-      (progn
-        ;; Coalton should already be loaded in our core image
-        ;; but let's verify it's available
-        (unless (find-package :coalton)
-          (error "Coalton not found in image"))
-        
-        ;; The coalton-user package is created in build/create-image.lisp  
-        ;; Just ensure it exists and is usable
-        (unless (find-package :coalton-user)
-          (error "coalton-user package not found"))
-        
-        t)
-    (error (e)
-      (smelter-error "Failed to setup Coalton environment: ~A" e))))
+  ;; Basic package verification
+  (unless (find-package :coalton)
+    (smelter-error "Coalton package not found in executable"))
+
+  (unless (find-package :coalton-user)
+    (smelter-error "coalton-user package not found in executable")))
 
 ;;; Script execution
 (defun read-file-content (filepath)
@@ -98,26 +89,17 @@
 (defun wrap-coalton-script (content)
   "Wrap user script content in proper Coalton environment"
   (concatenate 'string 
-               "(in-package #:coalton-user)" "
-"
-               ";; User script content" "
-"
-               content "
-
-"
-               ";; Auto-run main function if it exists" "
-"
-               "(when (fboundp 'main)" "
-"
-               "  (handler-case" "
-"
-               "      (main)" "
-"
-               "    (error (e)" "
-"
-               "      (format *error-output* \"Error in main: ~A~%\" e)" "
-"
-               "      (sb-ext:exit :code 1))))"))
+               "(in-package #:coalton-user)" "\n"
+               ";; User script content" "\n"
+               content "\n\n"
+               ";; Auto-run main function if it exists" "\n"
+               "(when (fboundp 'main)" "\n"
+               "  (handler-case" "\n"
+               "      (main)" "\n"
+               "    (error (e)" "\n"
+               "      (format *error-output* \"Error in main: ~A~%\" e)" "\n"
+               "      (sb-ext:exit :code 1))))"
+))
 
 (defun run-script (filepath)
   "Run a Coalton script file with translation support"
@@ -314,13 +296,14 @@
 (defun main ()
   "Main entry point for Smelter CLI"
   (handler-case
+      ;; Parse and execute command line arguments
       (let ((args (rest sb-ext:*posix-argv*))) ; Skip program name
         (parse-arguments args))
-    
+
     (smelter-error (e)
       (format *error-output* "Error: ~A~%" (smelter-error-message e))
       (sb-ext:exit :code 1))
-    
+
     (error (e)
       (format *error-output* "Unexpected error: ~A~%" e)
       (sb-ext:exit :code 1))))
