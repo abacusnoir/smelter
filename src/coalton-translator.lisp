@@ -157,7 +157,9 @@
             (dolist (form forms)
               (format out "    ~S~%"
  form))
-            (format out "  ))"))))))
+            (format out "  )")))
+      ;; Close the (cl:progn form
+      (format out ")~%"))))
 
 (defun qualify-cl-symbols (form)
   "Recursively qualify Common Lisp symbols that might be shadowed by Coalton"
