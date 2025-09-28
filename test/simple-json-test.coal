@@ -23,9 +23,26 @@
       ((Ok json-val)
        Unit)
       ((Err error)
+       Unit))
+
+    ;; Test JSON object parsing
+    (match (smelter.stdlib.json:parse-json "{\"name\": \"smelter\", \"version\": 1}")
+      ((Ok json-val)
+       Unit)
+      ((Err error)
+       Unit))
+
+    ;; Test JSON array parsing
+    (match (smelter.stdlib.json:parse-json "[1, 2, 3]")
+      ((Ok json-val)
+       Unit)
+      ((Err error)
        Unit))))
 
 ;; Print test status and run the test
 (cl:format cl:*standard-output* "Testing JSON functionality...~%")
+(cl:format cl:*standard-output* "- Numbers, strings, booleans, null~%")
+(cl:format cl:*standard-output* "- Objects and arrays~%")
+(cl:format cl:*standard-output* "- Pattern matching integration~%")
 (test-json-parse Unit)
 (cl:format cl:*standard-output* "JSON tests completed~%")

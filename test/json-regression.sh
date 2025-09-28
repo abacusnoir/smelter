@@ -100,6 +100,30 @@ test_json_eval "JSON null parsing" \
     '(match (smelter.stdlib.json:parse-json "null") ((Ok _) "SUCCESS") ((Err _) "FAILED"))' \
     "SUCCESS"
 
+# Test JSON object parsing
+test_json_eval "JSON object parsing" \
+    '(match (smelter.stdlib.json:parse-json "{\"name\": \"test\", \"value\": 42}") ((Ok _) "SUCCESS") ((Err _) "FAILED"))' \
+    "SUCCESS"
+
+# Test JSON array parsing
+test_json_eval "JSON array parsing" \
+    '(match (smelter.stdlib.json:parse-json "[1, 2, 3, \"hello\"]") ((Ok _) "SUCCESS") ((Err _) "FAILED"))' \
+    "SUCCESS"
+
+# Test nested JSON structures
+test_json_eval "Nested JSON structures" \
+    '(match (smelter.stdlib.json:parse-json "{\"data\": [1, 2], \"meta\": {\"type\": \"test\"}}") ((Ok _) "SUCCESS") ((Err _) "FAILED"))' \
+    "SUCCESS"
+
+# Test empty JSON structures
+test_json_eval "Empty JSON object" \
+    '(match (smelter.stdlib.json:parse-json "{}") ((Ok _) "SUCCESS") ((Err _) "FAILED"))' \
+    "SUCCESS"
+
+test_json_eval "Empty JSON array" \
+    '(match (smelter.stdlib.json:parse-json "[]") ((Ok _) "SUCCESS") ((Err _) "FAILED"))' \
+    "SUCCESS"
+
 # Test invalid JSON handling
 test_json_eval "Invalid JSON error handling" \
     '(match (smelter.stdlib.json:parse-json "invalid") ((Ok _) "FAILED") ((Err _) "SUCCESS"))' \
@@ -116,3 +140,4 @@ test_json_script "JSON script execution" \
 
 echo -e "${GREEN}🎉 All JSON regression tests passed!${NC}"
 echo -e "${GREEN}JSON functionality is working correctly in both eval and script modes.${NC}"
+echo -e "${GREEN}Comprehensive JSON support: primitives, objects, arrays, and nested structures.${NC}"
