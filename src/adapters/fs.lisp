@@ -2,23 +2,16 @@
   (:use #:coalton #:coalton-prelude)
   (:export
    #:FileInfo
-   #:FSError #:FileNotFound #:PermissionDenied #:IOError
-   #:read-file
-   #:write-file
-   #:append-file
-   #:delete-file
-   #:file-exists?
-   #:directory-exists?
-   #:get-file-info
-   #:list-directory
-   #:create-directory
-   #:remove-directory
-   #:join-paths
-   #:absolute-path
-   #:path-filename
-   #:path-extension
-   #:read-lines
-   #:write-lines))
+   #:FSError #:FileNotFound #:PermissionDenied #:IOError #:FileSystemError
+   #:read-file #:read-file-bytes #:read-lines
+   #:write-file #:write-file-bytes #:append-file #:write-lines
+   #:delete-file #:copy-file #:move-file #:rename-file
+   #:file-exists? #:directory-exists? #:is-file? #:is-directory?
+   #:get-file-info #:file-size
+   #:list-directory #:create-directory #:create-directories #:remove-directory
+   #:join-paths #:absolute-path #:current-directory
+   #:path-filename #:path-extension
+   #:with-temp-file #:with-temp-directory))
 
 (in-package #:smelter/adapters/fs)
 
@@ -29,7 +22,8 @@
   (define-type FSError
     (FileNotFound String)
     (PermissionDenied String)
-    (IOError String))
+    (IOError String)
+    (FileSystemError String))
 
   ;; File reading and writing
   (declare read-file (String -> (Result FSError String)))
@@ -246,4 +240,145 @@
         (cl:file-error (e)
           (Err (IOError (cl:format cl:nil "Write lines error: ~A" e))))
         (cl:error (e)
-          (Err (IOError (cl:format cl:nil "Write lines error: ~A" e))))))))
+          (Err (IOError (cl:format cl:nil "Write lines error: ~A" e)))))))
+
+  ;; Byte operations
+  (declare read-file-bytes (String -> (Result FSError (List Integer))))
+  (define (read-file-bytes path)
+    "Read entire file contents as list of bytes"
+    (lisp (Result FSError (List Integer)) (path)
+      (cl:handler-case
+          (cl:with-open-file (stream path :direction :input :element-type '(cl:unsigned-byte 8))
+            (cl:let ((bytes cl:nil))
+              (cl:loop for byte = (cl:read-byte stream cl:nil cl:nil)
+                       while byte
+                       do (cl:push byte bytes))
+              (Ok (cl:nreverse bytes))))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Err (FileNotFound path)))
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied path)))
+            (cl:t (Err (IOError (cl:format cl:nil "Read bytes error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Read bytes error: ~A" e)))))))
+
+  (declare write-file-bytes (String -> (List Integer) -> (Result FSError Unit)))
+  (define (write-file-bytes path bytes)
+    "Write list of bytes to file (overwrites existing)"
+    (lisp (Result FSError Unit) (path bytes)
+      (cl:handler-case
+          (cl:progn
+            (cl:ensure-directories-exist path)
+            (cl:with-open-file (stream path :direction :output :element-type '(cl:unsigned-byte 8) :if-exists :supersede)
+              (cl:dolist (byte bytes)
+                (cl:write-byte byte stream)))
+            (Ok Unit))
+        (cl:file-error (e)
+          (Err (IOError (cl:format cl:nil "Write bytes error: ~A" e))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Write bytes error: ~A" e)))))))
+
+  ;; File operations
+  (declare copy-file (String -> String -> (Result FSError Unit)))
+  (define (copy-file source dest)
+    "Copy file from source to destination"
+    (lisp (Result FSError Unit) (source dest)
+      (cl:handler-case
+          (cl:progn
+            (cl:ensure-directories-exist dest)
+            (uiop:copy-file source dest)
+            (Ok Unit))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Err (FileNotFound source)))
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied (cl:format cl:nil "~A -> ~A" source dest))))
+            (cl:t (Err (IOError (cl:format cl:nil "Copy error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Copy error: ~A" e)))))))
+
+  (declare move-file (String -> String -> (Result FSError Unit)))
+  (define (move-file source dest)
+    "Move file from source to destination"
+    (lisp (Result FSError Unit) (source dest)
+      (cl:handler-case
+          (cl:progn
+            (cl:ensure-directories-exist dest)
+            (uiop:rename-file-overwriting-target source dest)
+            (Ok Unit))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Err (FileNotFound source)))
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied (cl:format cl:nil "~A -> ~A" source dest))))
+            (cl:t (Err (IOError (cl:format cl:nil "Move error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Move error: ~A" e)))))))
+
+  (declare rename-file (String -> String -> (Result FSError Unit)))
+  (define (rename-file old-path new-path)
+    "Rename file (alias for move-file)"
+    (move-file old-path new-path))
+
+  ;; Simplified boolean queries
+  (declare is-file? (String -> Boolean))
+  (define (is-file? path)
+    "Check if path exists and is a regular file"
+    (file-exists? path))
+
+  (declare is-directory? (String -> Boolean))
+  (define (is-directory? path)
+    "Check if path exists and is a directory"
+    (directory-exists? path))
+
+  ;; File size getter
+  (declare file-size (String -> (Result FSError Integer)))
+  (define (file-size path)
+    "Get file size in bytes"
+    (match (get-file-info path)
+      ((Ok (FileInfo size _ _ _)) (Ok size))
+      ((Err e) (Err e))))
+
+  ;; Directory aliases
+  (declare create-directories (String -> (Result FSError Unit)))
+  (define (create-directories path)
+    "Create directory and parents if needed (alias for create-directory)"
+    (create-directory path))
+
+  ;; Current directory
+  (declare current-directory (Unit -> String))
+  (define (current-directory)
+    "Get current working directory"
+    (lisp String ()
+      (cl:namestring (uiop:getcwd))))
+
+  ;; Temporary file utilities (simplified for Boolean return type)
+  (declare with-temp-file ((String -> Boolean) -> Boolean))
+  (define (with-temp-file f)
+    "Execute function with a temporary file path"
+    (let ((temp-path (lisp String ()
+                       (cl:let ((temp-name (cl:format cl:nil "/tmp/smelter-temp-~A.tmp" (cl:get-universal-time))))
+                         temp-name))))
+      (let ((result (f temp-path)))
+        (lisp Unit (temp-path)
+          (cl:handler-case
+              (cl:delete-file temp-path)
+            (cl:error ())))
+        result)))
+
+  (declare with-temp-directory ((String -> Boolean) -> Boolean))
+  (define (with-temp-directory f)
+    "Execute function with a temporary directory path"
+    (let ((temp-dir (lisp String ()
+                      (cl:let ((temp-name (cl:format cl:nil "/tmp/smelter-temp-dir-~A/" (cl:get-universal-time))))
+                        temp-name))))
+      (let ((result (f temp-dir)))
+        (lisp Unit (temp-dir)
+          (cl:handler-case
+              (uiop:delete-directory-tree (cl:pathname temp-dir) :validate cl:t)
+            (cl:error ())))
+        result))))

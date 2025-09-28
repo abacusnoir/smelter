@@ -30,11 +30,10 @@
                   :components
                   ((:file "json")))
 
-                 ;; Temporarily disable all adapters to focus on core pattern matching
-                 ;;(:module "adapters"
-                 ;; :serial t
-                 ;; :components
-                 ;; ((:file "json-adapter")))
+                 (:module "adapters"
+                  :serial t
+                  :components
+                  ((:file "fs")))
 
                  (:file "cli"))))
 

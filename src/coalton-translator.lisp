@@ -147,6 +147,8 @@
       ;; Import smelter standard library functions
       (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.io :coalton-user))~%")
       (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%")
+      ;; Import adapters
+      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/fs :coalton-user))~%")
       
       (if (= (length forms) 1)
           ;; Single expression: evaluate directly in coalton context
@@ -205,7 +207,9 @@
       ;; Add smelter standard library imports
       (format out "  ;; Import Smelter standard libraries~%")
       (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.io :coalton-user))~%")
-      (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%")
+      ;; Import adapters
+      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/fs :coalton-user))~%~%")
       
       ;; Only include coalton-toplevel if we have Coalton forms
       (when coalton-forms
@@ -245,6 +249,8 @@
         (format out "  ;; Import Smelter standard libraries~%")
         (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.io :coalton-user))~%")
         (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%")
+        ;; Import adapters
+        (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/fs :coalton-user))~%")
         (format out "  ~A)" content))
       ;; Standard translation path
       (let ((script (parse-coalton-file content)))
