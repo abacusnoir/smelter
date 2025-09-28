@@ -1,6 +1,6 @@
 # Smelter Makefile
 
-.PHONY: all build test test-eval clean clean-all deps install compress release help
+.PHONY: all build test test-eval test-json clean clean-all deps install compress release help
 
 SBCL := sbcl --non-interactive --no-userinit --no-sysinit
 TARGET := smt
@@ -36,6 +36,11 @@ test: $(TARGET)
 test-eval: $(TARGET)
 	@echo "Running eval mode regression tests..."
 	@./test/eval-regression.sh
+
+# Run JSON regression tests
+test-json: $(TARGET)
+	@echo "Running JSON functionality tests..."
+	@./test/json-regression.sh
 
 # Clean build artifacts
 clean:
@@ -77,6 +82,7 @@ help:
 	@echo "  make build     - Build the smt executable"
 	@echo "  make test      - Run comprehensive tests (smoke + eval regression)"
 	@echo "  make test-eval - Run eval mode regression tests only"
+	@echo "  make test-json - Run JSON functionality tests only"
 	@echo "  make clean     - Clean build artifacts"
 	@echo "  make deps      - Install dependencies (Quicklisp and Coalton)"
 	@echo ""
