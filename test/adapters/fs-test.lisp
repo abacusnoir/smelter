@@ -39,16 +39,26 @@
         (let ((test-file "/tmp/smelter-fs-test-exists.txt"))
           (progn
             (cleanup-test-file test-file)
-            (and (not (file-exists? test-file))
-                 (match (write-file test-file "test")
-                   ((Ok _)
-                    (and (file-exists? test-file)
-                         (is-file? test-file)
-                         (not (is-directory? test-file))
-                         (progn
-                           (cleanup-test-file test-file)
-                           (not (file-exists? test-file)))))
-                   (_ False))))))))
+            (match (file-exists? test-file)
+              ((Ok False)
+               (match (write-file test-file "test")
+                 ((Ok _)
+                  (match (file-exists? test-file)
+                    ((Ok True)
+                     (match (is-file? test-file)
+                       ((Ok True)
+                        (match (is-directory? test-file)
+                          ((Ok False)
+                           (progn
+                             (cleanup-test-file test-file)
+                             (match (file-exists? test-file)
+                               ((Ok False) True)
+                               (_ False))))
+                          (_ False)))
+                       (_ False)))
+                    (_ False)))
+                 (_ False)))
+              (_ False)))))))
 
   ;; Test byte operations
   (declare test-byte-operations (Unit -> TestResult))
@@ -129,12 +139,21 @@
           (progn
             (match (create-directory test-dir)
               ((Ok _)
-               (and (directory-exists? test-dir)
-                    (is-directory? test-dir)
-                    (not (is-file? test-dir))
-                    (match (remove-directory test-dir)
-                      ((Ok _) (not (directory-exists? test-dir)))
-                      (_ False))))
+               (match (directory-exists? test-dir)
+                 ((Ok True)
+                  (match (is-directory? test-dir)
+                    ((Ok True)
+                     (match (is-file? test-dir)
+                       ((Ok False)
+                        (match (remove-directory test-dir)
+                          ((Ok _)
+                           (match (directory-exists? test-dir)
+                             ((Ok False) True)
+                             (_ False)))
+                          (_ False)))
+                       (_ False)))
+                    (_ False)))
+                 (_ False)))
               (_ False)))))))
 
   ;; Test file info operations
@@ -202,9 +221,12 @@
         (let ((path1 "/tmp")
               (path2 "test-file.txt")
               (full-path (join-paths path1 path2)))
-          (and (not (== (current-directory) ""))
-               (== (path-filename "test.txt") "test.txt")
-               (== (path-extension "test.txt") "txt"))))))
+          (match (current-directory)
+            ((Ok cwd)
+             (and (not (== cwd ""))
+                  (== (path-filename "test.txt") "test.txt")
+                  (== (path-extension "test.txt") "txt")))
+            (_ False))))))
 
   ;; Test append operations
   (declare test-append-operations (Unit -> TestResult))
@@ -246,11 +268,12 @@
   (define test-temp-utilities
     (test-case "Temporary Utilities"
       (fn ()
-        (let ((temp-result (with-temp-file (fn (temp-path)
-                                             (match (write-file temp-path "temp test")
-                                               ((Ok _) True)
-                                               (_ False))))))
-          temp-result))))
+        (match (with-temp-file (fn (temp-path)
+                                   (match (write-file temp-path "temp test")
+                                     ((Ok _) (Ok "Temp file test successful"))
+                                     ((Err e) (Err e)))))
+          ((Ok _) True)
+          (_ False)))))
 
   ;; Main test runner
   (define main

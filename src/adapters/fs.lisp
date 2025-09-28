@@ -98,19 +98,41 @@
           (Err (IOError (cl:format cl:nil "Delete error: ~A" e)))))))
 
   ;; File/directory existence checks
-  (declare file-exists? (String -> Boolean))
+  (declare file-exists? (String -> (Result FSError Boolean)))
   (define (file-exists? path)
     "Check if file exists"
-    (lisp Boolean (path)
-      (cl:and (cl:probe-file path)
-              (cl:not (uiop:directory-pathname-p path)))))
+    (lisp (Result FSError Boolean) (path)
+      (cl:handler-case
+          (cl:let ((probe-result (cl:probe-file path)))
+            (Ok (cl:and probe-result
+                        (cl:not (uiop:directory-pathname-p probe-result)))))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Ok False))  ; File doesn't exist is not an error, just False
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied (cl:format cl:nil "Cannot access: ~A" path))))
+            (cl:t (Err (IOError (cl:format cl:nil "File check error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "File check error: ~A" e)))))))
 
-  (declare directory-exists? (String -> Boolean))
+  (declare directory-exists? (String -> (Result FSError Boolean)))
   (define (directory-exists? path)
     "Check if directory exists"
-    (lisp Boolean (path)
-      (cl:and (cl:probe-file path)
-              (uiop:directory-pathname-p path))))
+    (lisp (Result FSError Boolean) (path)
+      (cl:handler-case
+          (cl:let ((probe-result (cl:probe-file path)))
+            (Ok (cl:and probe-result
+                        (uiop:directory-pathname-p probe-result))))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Ok False))  ; Directory doesn't exist is not an error, just False
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied (cl:format cl:nil "Cannot access: ~A" path))))
+            (cl:t (Err (IOError (cl:format cl:nil "Directory check error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Directory check error: ~A" e)))))))
 
   ;; File information - simplified version that doesn't rely on sb-posix
   (declare get-file-info (String -> (Result FSError FileInfo)))
@@ -187,11 +209,21 @@
     (lisp String (path1 path2)
       (cl:namestring (cl:merge-pathnames path2 path1))))
 
-  (declare absolute-path (String -> String))
+  (declare absolute-path (String -> (Result FSError String)))
   (define (absolute-path path)
     "Get absolute path"
-    (lisp String (path)
-      (cl:namestring (cl:truename path))))
+    (lisp (Result FSError String) (path)
+      (cl:handler-case
+          (Ok (cl:namestring (cl:truename path)))
+        (cl:file-error (e)
+          (cl:cond
+            ((cl:search "does not exist" (cl:format cl:nil "~A" e))
+             (Err (FileNotFound path)))
+            ((cl:search "permission" (cl:format cl:nil "~A" e))
+             (Err (PermissionDenied path)))
+            (cl:t (Err (IOError (cl:format cl:nil "Absolute path error: ~A" e))))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Absolute path error: ~A" e)))))))
 
   (declare path-filename (String -> String))
   (define (path-filename path)
@@ -325,12 +357,12 @@
     (move-file old-path new-path))
 
   ;; Simplified boolean queries
-  (declare is-file? (String -> Boolean))
+  (declare is-file? (String -> (Result FSError Boolean)))
   (define (is-file? path)
     "Check if path exists and is a regular file"
     (file-exists? path))
 
-  (declare is-directory? (String -> Boolean))
+  (declare is-directory? (String -> (Result FSError Boolean)))
   (define (is-directory? path)
     "Check if path exists and is a directory"
     (directory-exists? path))
@@ -350,35 +382,43 @@
     (create-directory path))
 
   ;; Current directory
-  (declare current-directory (Unit -> String))
+  (declare current-directory (Unit -> (Result FSError String)))
   (define (current-directory)
     "Get current working directory"
-    (lisp String ()
-      (cl:namestring (uiop:getcwd))))
+    (lisp (Result FSError String) ()
+      (cl:handler-case
+          (Ok (cl:namestring (uiop:getcwd)))
+        (cl:file-error (e)
+          (Err (IOError (cl:format cl:nil "Cannot get current directory: ~A" e))))
+        (cl:error (e)
+          (Err (IOError (cl:format cl:nil "Cannot get current directory: ~A" e)))))))
 
-  ;; Temporary file utilities (simplified for Boolean return type)
-  (declare with-temp-file ((String -> Boolean) -> Boolean))
+  ;; Temporary file utilities with proper Result handling
+  (declare with-temp-file ((String -> (Result FSError String)) -> (Result FSError String)))
   (define (with-temp-file f)
-    "Execute function with a temporary file path"
+    "Execute function with a temporary file path, automatically cleanup"
     (let ((temp-path (lisp String ()
                        (cl:let ((temp-name (cl:format cl:nil "/tmp/smelter-temp-~A.tmp" (cl:get-universal-time))))
                          temp-name))))
       (let ((result (f temp-path)))
         (lisp Unit (temp-path)
           (cl:handler-case
-              (cl:delete-file temp-path)
+              (cl:when (cl:probe-file temp-path)
+                (cl:delete-file temp-path))
             (cl:error ())))
         result)))
 
-  (declare with-temp-directory ((String -> Boolean) -> Boolean))
+  (declare with-temp-directory ((String -> (Result FSError String)) -> (Result FSError String)))
   (define (with-temp-directory f)
-    "Execute function with a temporary directory path"
+    "Execute function with a temporary directory path, automatically cleanup"
     (let ((temp-dir (lisp String ()
                       (cl:let ((temp-name (cl:format cl:nil "/tmp/smelter-temp-dir-~A/" (cl:get-universal-time))))
+                        (cl:ensure-directories-exist temp-name)
                         temp-name))))
       (let ((result (f temp-dir)))
         (lisp Unit (temp-dir)
           (cl:handler-case
-              (uiop:delete-directory-tree (cl:pathname temp-dir) :validate cl:t)
+              (cl:when (cl:probe-file temp-dir)
+                (uiop:delete-directory-tree (cl:pathname temp-dir) :validate cl:t))
             (cl:error ())))
         result))))
