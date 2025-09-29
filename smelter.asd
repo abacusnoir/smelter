@@ -33,7 +33,8 @@
                  (:module "adapters"
                   :serial t
                   :components
-                  ((:file "fs")))
+                  ((:file "fs")
+                   (:file "process")))
 
                  (:file "cli"))))
 

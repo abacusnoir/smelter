@@ -1,0 +1,444 @@
+#!/usr/bin/env smt run
+
+;; Smelter Process Adapter Demo Scripts
+;; ====================================
+;;
+;; This file demonstrates real-world usage of the Smelter process adapter
+;; for system scripting, automation, and command-line tool integration.
+;;
+;; Run with: ./smt run examples/process-demos.coal
+;; Or individual functions via: ./smt eval '(system-info)'
+
+(use-package :smelter/adapters/process)
+
+;; =============================================================================
+;; Example 1: System Information Gathering
+;; =============================================================================
+
+(define (system-info)
+  "Display comprehensive system information using various system commands."
+  (println "System Information Report")
+  (println "========================")
+  (newline)
+
+  ;; Operating System Info
+  (println "Operating System:")
+  (match (shell "uname -a")
+    ((Ok (ProcessResult stdout _ _))
+     (println (format "  ~A" (strip stdout))))
+    ((Err _) (println "  Unknown (uname not available)")))
+
+  ;; Kernel version
+  (match (shell "uname -r")
+    ((Ok (ProcessResult stdout _ _))
+     (println (format "  Kernel: ~A" (strip stdout))))
+    ((Err _) (println "  Kernel: Unknown")))
+
+  ;; CPU Information (Linux/macOS)
+  (println "\nCPU Information:")
+  (match (shell "sysctl -n machdep.cpu.brand_string 2>/dev/null || grep 'model name' /proc/cpuinfo | head -1 | cut -d: -f2")
+    ((Ok (ProcessResult stdout _ _))
+     (if (not (empty? (strip stdout)))
+         (println (format "  ~A" (strip stdout)))
+         (println "  CPU info not available")))
+    ((Err _) (println "  CPU info not available")))
+
+  ;; Memory Information
+  (println "\nMemory Information:")
+  (match (shell "free -h 2>/dev/null | grep Mem | awk '{print $2}' || system_profiler SPHardwareDataType | grep Memory | awk '{print $2 $3}'")
+    ((Ok (ProcessResult stdout _ _))
+     (if (not (empty? (strip stdout)))
+         (println (format "  Total: ~A" (strip stdout)))
+         (println "  Memory info not available")))
+    ((Err _) (println "  Memory info not available")))
+
+  ;; Disk Space
+  (println "\nDisk Space:")
+  (match (shell "df -h / | tail -1 | awk '{print \"Used: \" $3 \" / \" $2 \" (\" $5 \")\"}'")
+    ((Ok (ProcessResult stdout _ _))
+     (println (format "  ~A" (strip stdout))))
+    ((Err _) (println "  Disk info not available")))
+
+  ;; Current User and Shell
+  (println "\nUser Environment:")
+  (match (get-env "USER")
+    ((Some user) (println (format "  User: ~A" user)))
+    (None (println "  User: Unknown")))
+
+  (match (get-env "SHELL")
+    ((Some shell) (println (format "  Shell: ~A" shell)))
+    (None (println "  Shell: Unknown")))
+
+  (println (format "  Working Directory: ~A" (get-working-directory)))
+  (newline))
+
+;; =============================================================================
+;; Example 2: Git Repository Management
+;; =============================================================================
+
+(define (git-status-all)
+  "Check git status in all subdirectories and report repository states."
+  (println "Git Repository Status Report")
+  (println "============================")
+  (newline)
+
+  ;; Find all git repositories in current directory and subdirectories
+  (match (shell "find . -name .git -type d -maxdepth 3 2>/dev/null")
+    ((Ok (ProcessResult stdout _ _))
+     (let ((repo-paths (filter (fn (line) (not (empty? line)))
+                               (split-lines stdout))))
+       (if (empty? repo-paths)
+           (println "No git repositories found in current directory.")
+           (progn
+             (println (format "Found ~A git repositories:" (length repo-paths)))
+             (newline)
+             (map check-repo-status repo-paths)))))
+    ((Err _) (println "Error: Could not search for git repositories."))))
+
+(define (check-repo-status repo-git-path)
+  "Check the status of a single git repository."
+  (let ((repo-dir (dirname repo-git-path)))
+    (println (format "Repository: ~A" repo-dir))
+    (println "  ----------------------------------------")
+
+    ;; Check if there are uncommitted changes
+    (match (with-working-directory repo-dir (list "git" "status" "--porcelain"))
+      ((Ok (ProcessResult stdout _ _))
+       (if (empty? (strip stdout))
+           (println "  ✓ Clean working tree")
+           (progn
+             (println "  ⚠ Uncommitted changes:")
+             (map (fn (line) (println (format "    ~A" line)))
+                  (take 5 (split-lines stdout)))  ; Show first 5 changes
+             (let ((change-count (length (split-lines stdout))))
+               (if (> change-count 5)
+                   (println (format "    ... and ~A more changes" (- change-count 5)))
+                   unit)))))
+      ((Err _) (println "  ✗ Error checking git status")))
+
+    ;; Check current branch
+    (match (with-working-directory repo-dir (list "git" "branch" "--show-current"))
+      ((Ok (ProcessResult stdout _ _))
+       (println (format "  Branch: ~A" (strip stdout))))
+      ((Err _) (println "  Branch: Unknown")))
+
+    ;; Check if ahead/behind remote
+    (match (with-working-directory repo-dir (list "git" "status" "-b" "--porcelain"))
+      ((Ok (ProcessResult stdout _ _))
+       (let ((status-line (head (split-lines stdout))))
+         (cond
+           ((contains? "ahead" status-line)
+            (println "  ↑ Ahead of remote"))
+           ((contains? "behind" status-line)
+            (println "  ↓ Behind remote"))
+           (True (println "  ✓ Up to date with remote")))))
+      ((Err _) (println "  Remote status: Unknown")))
+
+    (newline)))
+
+;; =============================================================================
+;; Example 3: Log Monitoring and Analysis
+;; =============================================================================
+
+(define (analyze-logs log-file pattern)
+  "Analyze log files for patterns and generate summary reports."
+  (println (format "Log Analysis Report: ~A" log-file))
+  (println "=====================================")
+  (newline)
+
+  ;; Check if log file exists
+  (if (not (file-exists? log-file))
+      (println (format "Error: Log file '~A' not found." log-file))
+      (progn
+        ;; Get file size and line count
+        (match (run (list "wc" "-l" log-file))
+          ((Ok (ProcessResult stdout _ _))
+           (println (format "Total lines: ~A" (strip (head (split " " stdout))))))
+          ((Err _) (println "Could not count lines")))
+
+        ;; Search for the pattern
+        (println (format "\nSearching for pattern: '~A'" pattern))
+        (match (run (list "grep" "-c" pattern log-file))
+          ((Ok (ProcessResult stdout _ _))
+           (let ((count (parse-int (strip stdout))))
+             (println (format "Pattern matches: ~A" count))
+             (if (> count 0)
+                 (show-recent-matches log-file pattern)
+                 unit)))
+          ((Err _) (println "No matches found or error searching")))
+
+        ;; Show recent entries (last 10 lines)
+        (println "\nRecent log entries:")
+        (println "-------------------")
+        (match (run (list "tail" "-10" log-file))
+          ((Ok (ProcessResult stdout _ _))
+           (println stdout))
+          ((Err _) (println "Could not read recent entries"))))))
+
+(define (show-recent-matches log-file pattern)
+  "Show the most recent matches for a pattern in the log file."
+  (println "\nRecent matches:")
+  (println "---------------")
+  (match (run (list "grep" pattern log-file))
+    ((Ok (ProcessResult stdout _ _))
+     (let ((matches (split-lines stdout)))
+       (map println (take 5 (reverse matches)))))  ; Show last 5 matches
+    ((Err _) (println "Error retrieving matches"))))
+
+;; =============================================================================
+;; Example 4: Automated Backup System
+;; =============================================================================
+
+(define (backup-directory source destination)
+  "Create a compressed backup of a directory with timestamp."
+  (let ((timestamp (get-timestamp))
+        (backup-name (format "backup_~A_~A.tar.gz"
+                           (basename source)
+                           timestamp)))
+
+    (println (format "Creating backup: ~A -> ~A/~A" source destination backup-name))
+
+    ;; Create destination directory if it doesn't exist
+    (match (run (list "mkdir" "-p" destination))
+      ((Ok _)
+       ;; Create the backup
+       (let ((full-backup-path (format "~A/~A" destination backup-name)))
+         (match (run (list "tar" "-czf" full-backup-path "-C" (dirname source) (basename source)))
+           ((Ok _)
+            (progn
+              (println (format "✅ Backup created successfully: ~A" full-backup-path))
+              ;; Verify backup
+              (verify-backup full-backup-path)))
+           ((Err _) (println "❌ Backup creation failed")))))
+      ((Err _) (println "❌ Could not create destination directory")))))
+
+(define (verify-backup backup-path)
+  "Verify that a backup archive is valid."
+  (println "Verifying backup integrity...")
+  (match (run (list "tar" "-tzf" backup-path))
+    ((Ok (ProcessResult stdout _ _))
+     (let ((file-count (length (split-lines stdout))))
+       (println (format "✅ Backup verified: ~A files archived" file-count))))
+    ((Err _) (println "❌ Backup verification failed"))))
+
+(define (get-timestamp)
+  "Get current timestamp for backup naming."
+  (match (shell "date +%Y%m%d_%H%M%S")
+    ((Ok (ProcessResult stdout _ _)) (strip stdout))
+    ((Err _) "unknown_time")))
+
+;; =============================================================================
+;; Example 5: Development Environment Setup
+;; =============================================================================
+
+(define (setup-dev-environment project-type)
+  "Set up a development environment for different project types."
+  (println (format "Setting up ~A development environment..." project-type))
+  (println "============================================")
+  (newline)
+
+  (cond
+    ((== project-type "node")
+     (setup-node-environment))
+    ((== project-type "python")
+     (setup-python-environment))
+    ((== project-type "rust")
+     (setup-rust-environment))
+    (True
+     (println "Unknown project type. Supported: node, python, rust"))))
+
+(define (setup-node-environment)
+  "Set up Node.js development environment."
+  (println "Setting up Node.js environment...")
+
+  ;; Check if Node.js is installed
+  (if (command-exists? "node")
+      (progn
+        (match (run (list "node" "--version"))
+          ((Ok (ProcessResult stdout _ _))
+           (println (format "✓ Node.js version: ~A" (strip stdout))))
+          ((Err _) unit))
+
+        ;; Check npm
+        (if (command-exists? "npm")
+            (progn
+              (match (run (list "npm" "--version"))
+                ((Ok (ProcessResult stdout _ _))
+                 (println (format "✓ npm version: ~A" (strip stdout))))
+                ((Err _) unit))
+
+              ;; Initialize package.json if it doesn't exist
+              (if (not (file-exists? "package.json"))
+                  (progn
+                    (println "Creating package.json...")
+                    (match (run (list "npm" "init" "-y"))
+                      ((Ok _) (println "✓ package.json created"))
+                      ((Err _) (println "✗ Failed to create package.json"))))
+                  (println "✓ package.json already exists")))
+            (println "✗ npm not found")))
+      (println "✗ Node.js not found. Please install Node.js first.")))
+
+(define (setup-python-environment)
+  "Set up Python development environment."
+  (println "Setting up Python environment...")
+
+  ;; Check Python version
+  (if (command-exists? "python3")
+      (progn
+        (match (run (list "python3" "--version"))
+          ((Ok (ProcessResult stdout _ _))
+           (println (format "✓ Python version: ~A" (strip stdout))))
+          ((Err _) unit))
+
+        ;; Check if virtual environment should be created
+        (if (not (directory-exists? "venv"))
+            (progn
+              (println "Creating virtual environment...")
+              (match (run (list "python3" "-m" "venv" "venv"))
+                ((Ok _) (println "✓ Virtual environment created"))
+                ((Err _) (println "✗ Failed to create virtual environment"))))
+            (println "✓ Virtual environment already exists"))
+
+        ;; Create requirements.txt if it doesn't exist
+        (if (not (file-exists? "requirements.txt"))
+            (progn
+              (println "Creating requirements.txt...")
+              (write-file "requirements.txt" "# Add your dependencies here\n")
+              (println "✓ requirements.txt created"))
+            (println "✓ requirements.txt already exists")))
+      (println "✗ Python3 not found. Please install Python first.")))
+
+(define (setup-rust-environment)
+  "Set up Rust development environment."
+  (println "Setting up Rust environment...")
+
+  ;; Check Rust installation
+  (if (command-exists? "rustc")
+      (progn
+        (match (run (list "rustc" "--version"))
+          ((Ok (ProcessResult stdout _ _))
+           (println (format "✓ Rust version: ~A" (strip stdout))))
+          ((Err _) unit))
+
+        ;; Check Cargo
+        (if (command-exists? "cargo")
+            (progn
+              (match (run (list "cargo" "--version"))
+                ((Ok (ProcessResult stdout _ _))
+                 (println (format "✓ Cargo version: ~A" (strip stdout))))
+                ((Err _) unit))
+
+              ;; Initialize Cargo project if Cargo.toml doesn't exist
+              (if (not (file-exists? "Cargo.toml"))
+                  (progn
+                    (println "Initializing Cargo project...")
+                    (match (run (list "cargo" "init"))
+                      ((Ok _) (println "✓ Cargo project initialized"))
+                      ((Err _) (println "✗ Failed to initialize Cargo project"))))
+                  (println "✓ Cargo.toml already exists")))
+            (println "✗ Cargo not found")))
+      (println "✗ Rust not found. Please install Rust first.")))
+
+;; =============================================================================
+;; Example 6: Network and Service Monitoring
+;; =============================================================================
+
+(define (monitor-services)
+  "Monitor system services and network connectivity."
+  (println "System Services and Network Monitor")
+  (println "==================================")
+  (newline)
+
+  ;; Check network connectivity
+  (println "Network Connectivity:")
+  (println "--------------------")
+  (check-connectivity "google.com")
+  (check-connectivity "github.com")
+  (check-connectivity "8.8.8.8")
+  (newline)
+
+  ;; Check disk space
+  (println "Disk Space Usage:")
+  (println "----------------")
+  (match (shell "df -h | grep -E '^/dev/' | head -5")
+    ((Ok (ProcessResult stdout _ _))
+     (println stdout))
+    ((Err _) (println "Could not check disk space")))
+
+  ;; Check memory usage
+  (println "Memory Usage:")
+  (println "-------------")
+  (match (shell "free -h 2>/dev/null || vm_stat | head -10")
+    ((Ok (ProcessResult stdout _ _))
+     (println stdout))
+    ((Err _) (println "Could not check memory usage")))
+
+  ;; Check load average (Unix systems)
+  (println "System Load:")
+  (println "------------")
+  (match (shell "uptime")
+    ((Ok (ProcessResult stdout _ _))
+     (println stdout))
+    ((Err _) (println "Could not check system load"))))
+
+(define (check-connectivity host)
+  "Check network connectivity to a specific host."
+  (match (run (list "ping" "-c" "1" "-W" "3000" host))
+    ((Ok (ProcessResult _ _ (ExitSuccess)))
+     (println (format "  ✓ ~A - Reachable" host)))
+    ((Ok (ProcessResult _ _ (ExitFailure _)))
+     (println (format "  ✗ ~A - Unreachable" host)))
+    ((Err _) (println (format "  ? ~A - Cannot test" host)))))
+
+;; =============================================================================
+;; Main function - Run demos
+;; =============================================================================
+
+(define (main)
+  "Main function to demonstrate all process adapter capabilities."
+  (println "Smelter Process Adapter Demonstration")
+  (println "====================================")
+  (newline)
+
+  ;; Show available demos
+  (println "Available demonstrations:")
+  (println "1. (system-info) - System information gathering")
+  (println "2. (git-status-all) - Git repository status")
+  (println "3. (analyze-logs \"/var/log/system.log\" \"error\") - Log analysis")
+  (println "4. (backup-directory \"./src\" \"./backups\") - Directory backup")
+  (println "5. (setup-dev-environment \"node\") - Development environment setup")
+  (println "6. (monitor-services) - System monitoring")
+  (newline)
+
+  ;; Run a sample demonstration
+  (println "Running system information demo:")
+  (println "================================")
+  (system-info)
+
+  (println "\nFor more demos, run individual functions from the REPL:")
+  (println "  ./smt repl")
+  (println "  > (use-package :smelter/adapters/process)")
+  (println "  > (git-status-all)")
+  (println "  > (monitor-services)")
+  (newline))
+
+;; Helper functions that may need to be implemented
+(define (strip s) s)  ; Placeholder for string strip
+(define (split-lines s) (list s))  ; Placeholder for line splitting
+(define (split sep s) (list s))  ; Placeholder for string splitting
+(define (empty? s) (== s ""))  ; Check if string is empty
+(define (contains? substr s) True)  ; Placeholder for substring check
+(define (length lst) 0)  ; Placeholder for list length
+(define (take n lst) lst)  ; Placeholder for taking n items
+(define (reverse lst) lst)  ; Placeholder for list reverse
+(define (filter pred lst) lst)  ; Placeholder for list filter
+(define (head lst) "")  ; Placeholder for list head
+(define (dirname path) path)  ; Placeholder for dirname
+(define (basename path) path)  ; Placeholder for basename
+(define (file-exists? path) True)  ; Placeholder for file existence
+(define (directory-exists? path) True)  ; Placeholder for directory existence
+(define (write-file path content) unit)  ; Placeholder for file writing
+(define (parse-int s) 0)  ; Placeholder for integer parsing
+(define (format pattern . args) pattern)  ; Placeholder for string formatting
+(define (newline) (println ""))  ; Helper for newlines
+(define unit Unit)  ; Unit value
