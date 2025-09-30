@@ -4,68 +4,212 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v0.1.0)'
+        required: true
+        default: 'v0.1.0'
 
 jobs:
-  release:
-    runs-on: macos-latest
+  build:
+    name: Build for ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          # macOS builds
+          - os: macos-latest
+            platform: darwin-x64
+            sbcl-arch: x64
+          - os: macos-14  # Apple Silicon
+            platform: darwin-arm64
+            sbcl-arch: arm64
+
+          # Linux builds
+          - os: ubuntu-latest
+            platform: linux-x64
+            sbcl-arch: x64
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install SBCL
-        run: brew install sbcl
-      
-      - name: Install Quicklisp
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SBCL (Ubuntu)
+        if: runner.os == 'Linux'
         run: |
-          curl -O https://beta.quicklisp.org/quicklisp.lisp
-          sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)' --quit
-      
-      - name: Build Release Binary
+          sudo apt-get update
+          sudo apt-get install -y sbcl
+
+      - name: Install SBCL (macOS)
+        if: runner.os == 'macOS'
         run: |
-          make deps
-          make build-minimal || make build
-          mv smt-minimal smelter 2>/dev/null || mv smt smelter
-          strip smelter
-          if command -v upx >/dev/null 2>&1; then
-            upx --best smelter || true
+          brew install sbcl
+
+      - name: Verify SBCL installation
+        run: |
+          sbcl --version
+          which sbcl
+
+      - name: Build Smelter
+        run: |
+          make deps || true  # Continue if deps already installed
+          make build
+
+      - name: Test binary
+        run: |
+          ./smt --version
+          ./smt eval '1'
+
+      - name: Create release binary with platform naming
+        run: |
+          mkdir -p dist
+          # Determine platform and arch
+          if [[ "${{ matrix.platform }}" == *"darwin"* ]]; then
+            PLATFORM="darwin"
+          else
+            PLATFORM="linux"
           fi
-      
-      - name: Create Release Archive
-        run: |
-          tar -czf smelter-${{ github.ref_name }}-darwin-$(uname -m).tar.gz smelter
-          shasum -a 256 smelter-*.tar.gz > checksums.txt
-      
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+
+          if [[ "${{ matrix.platform }}" == *"arm64"* ]]; then
+            ARCH="arm64"
+          else
+            ARCH="x64"
+          fi
+
+          BINARY_NAME="smt-${PLATFORM}-${ARCH}"
+          cp smt dist/${BINARY_NAME}
+
+          # Create tarball and checksum
+          cd dist
+          tar -czf ${BINARY_NAME}.tar.gz ${BINARY_NAME}
+          shasum -a 256 ${BINARY_NAME}.tar.gz > ${BINARY_NAME}.tar.gz.sha256
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            smelter-*.tar.gz
-            checksums.txt
-          draft: false
-          prerelease: false
-          body: |
-            # Smelter ${{ github.ref_name }}
-            
-            🔥 Type-safe scripting with 43ms startup
-            
-            ## Installation
-            
-            ### Homebrew (recommended)
-            ```bash
-            brew tap abacusnoir/smelter
-            brew install smelter
-            ```
-            
-            ### Manual
-            ```bash
-            curl -L https://github.com/abacusnoir/smelter/releases/download/${{ github.ref_name }}/smelter-${{ github.ref_name }}-darwin-$(uname -m).tar.gz | tar xz
-            chmod +x smelter
-            sudo mv smelter /usr/local/bin/smt
-            ```
-            
-            ## Highlights
-            - ⚡ 43ms startup (faster than Ruby)
-            - 🛡️ Full type safety
-            - 📦 9.3MB self-contained binary
-            - 🎯 Zero dependencies
+          name: smt-${{ matrix.platform }}
+          path: dist/smt-${{ matrix.platform }}*
+          retention-days: 1
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Prepare release assets
+        run: |
+          # Flatten artifact directories
+          find dist/ -name 'smt-*' -type f -exec mv {} dist/ \;
+          ls -la dist/
+
+      - name: Get release info
+        id: release_info
+        run: |
+          if [[ ${{ github.event_name }} == 'workflow_dispatch' ]]; then
+            VERSION=${{ github.event.inputs.version }}
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.release_info.outputs.version }}
+          release_name: Smelter ${{ steps.release_info.outputs.version }}
+          body: |
+            # Smelter ${{ steps.release_info.outputs.version }}
+
+            🔥 Type-safe scripting with ~43ms startup
+
+            ## Installation
+
+            ### Quick Install (Recommended)
+            ```bash
+            curl -L https://github.com/${{ github.repository }}/releases/latest/download/install.sh | bash
+            ```
+
+            ### Manual Download
+            Download the binary for your platform below, make it executable, and add to your PATH.
+
+            ## What's New
+            - See [CHANGELOG.md](CHANGELOG.md) for details
+
+            ## Supported Platforms
+            - macOS (Intel and Apple Silicon)
+            - Linux (x86_64)
+
+            ## Quick Start
+            ```bash
+            # Verify installation
+            smt --version
+
+            # Try a simple expression
+            smt eval '1'
+
+            # Start interactive REPL
+            smt repl
+            ```
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        run: |
+          for file in dist/smt-*.tar.gz; do
+            echo "Uploading $file..."
+            curl \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"$file" \
+              "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)"
+          done
+
+          for file in dist/smt-*.sha256; do
+            echo "Uploading $file..."
+            curl \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: text/plain" \
+              --data-binary @"$file" \
+              "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)"
+          done
+
+      - name: Upload install script
+        run: |
+          curl \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/x-sh" \
+            --data-binary @scripts/install.sh \
+            "${{ steps.create_release.outputs.upload_url }}?name=install.sh"
+
+  test-release:
+    name: Test Release Installation
+    needs: release
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Test installation
+        run: |
+          # Test the install script
+          curl -L https://github.com/${{ github.repository }}/releases/latest/download/install.sh | bash
+
+          # Verify it works
+          smt --version
+          smt eval '1'

@@ -61,6 +61,7 @@ detect_platform() {
             ;;
         *)
             log_error "Unsupported architecture: $arch"
+            log_error "Supported architectures: x86_64, amd64, arm64, aarch64"
             exit 1
             ;;
     esac
@@ -153,7 +154,10 @@ download_and_install() {
         # Try without the target suffix
         binary_path="$temp_dir/$BINARY_NAME"
         if [ ! -f "$binary_path" ]; then
-            log_error "Binary not found in archive"
+            # List what's actually in the archive for debugging
+            log_error "Binary not found in archive. Contents:"
+            ls -la "$temp_dir/" || true
+            log_error "Expected: $BINARY_TARGET or $BINARY_NAME"
             rm -rf "$temp_dir"
             exit 1
         fi
@@ -183,7 +187,10 @@ verify_installation() {
     
     if ! command -v "$BINARY_NAME" >/dev/null 2>&1; then
         log_error "Installation verification failed. $BINARY_NAME not found in PATH."
-        log_info "Try adding $INSTALL_DIR to your PATH or restart your shell."
+        log_info "Try adding $INSTALL_DIR to your PATH:"
+        log_info "  export PATH=\"$INSTALL_DIR:\$PATH\""
+        log_info "Or restart your shell/terminal."
+        log_info "You can also run directly: $INSTALL_DIR/$BINARY_NAME"
         exit 1
     fi
     
@@ -230,13 +237,36 @@ show_help() {
     echo "  -h, --help           Show this help message"
     echo "  -v, --version VER    Install specific version (e.g., v0.1.0)"
     echo "  -d, --dir DIR        Install to custom directory (default: $INSTALL_DIR)"
+    echo "  --local PATH         Install from local binary file"
     echo "  --uninstall          Uninstall Smelter"
     echo
     echo "Examples:"
     echo "  $0                   # Install latest version"
     echo "  $0 -v v0.1.0         # Install specific version"
     echo "  $0 -d ~/.local/bin   # Install to custom directory"
+    echo "  $0 --local ./smt     # Install from local binary"
     echo "  $0 --uninstall       # Remove Smelter"
+}
+
+# Local install option (for development)
+install_local() {
+    local binary_path="$1"
+
+    if [ ! -f "$binary_path" ]; then
+        log_error "Binary not found at $binary_path"
+        exit 1
+    fi
+
+    log_info "Installing local binary to $INSTALL_DIR/$BINARY_NAME..."
+    if [ -w "$INSTALL_DIR" ] || [ "$EUID" -eq 0 ]; then
+        cp "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
+    else
+        log_info "Requesting sudo permissions for installation..."
+        sudo cp "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
+    fi
+
+    log_success "Local installation complete"
+    verify_installation
 }
 
 # Uninstall function
@@ -274,6 +304,15 @@ while [[ $# -gt 0 ]]; do
         -d|--dir)
             INSTALL_DIR="$2"
             shift 2
+            ;;
+        --local)
+            if [ -z "$2" ]; then
+                log_error "--local requires a binary path"
+                echo "Usage: $0 --local /path/to/smt"
+                exit 1
+            fi
+            install_local "$2"
+            exit 0
             ;;
         --uninstall)
             uninstall
