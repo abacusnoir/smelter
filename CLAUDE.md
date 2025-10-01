@@ -95,6 +95,7 @@ The final binary is self-contained with no runtime dependencies.
 ## Feature Documentation
 
 ### Implemented Features
+- **[Process Adapter Implementation](docs/process-adapter-implementation.md)** - Simplified string-based process execution adapter (5 of 6 adapters now working)
 - **[Simplified Coalton-Toplevel Implementation](docs/coalton-toplevel-implementation.md)** - Pure Coalton support using native Coalton contexts instead of preprocessing
 - **[Official Coalton Migration Patterns](docs/coalton-migration-patterns.md)** - Migrated stdlib to use official Coalton library binding patterns
 - **[HTTP and JSON Adapters](docs/http-json-adapters.md)** - Network and JSON capabilities for API interaction and data processing

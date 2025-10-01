@@ -29,12 +29,12 @@ log_info() {
 
 log_success() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    ((TESTS_PASSED++))
+    ((TESTS_PASSED++)) || true
 }
 
 log_error() {
     echo -e "${RED}[FAIL]${NC} $1"
-    ((TESTS_FAILED++))
+    ((TESTS_FAILED++)) || true
 }
 
 log_warning() {
@@ -45,8 +45,8 @@ run_test() {
     local test_name="$1"
     local test_command="$2"
     local expected_exit_code="${3:-0}"
-    
-    ((TESTS_RUN++))
+
+    ((TESTS_RUN++)) || true
     
     log_info "Running test: $test_name"
     
@@ -75,8 +75,8 @@ run_test_with_output() {
     local test_name="$1"
     local test_command="$2"
     local expected_pattern="$3"
-    
-    ((TESTS_RUN++))
+
+    ((TESTS_RUN++)) || true
     
     log_info "Running test: $test_name"
     

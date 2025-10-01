@@ -38,8 +38,8 @@
                   ((:file "fs")
                    (:file "http")
                    (:file "json-adapter")
+                   (:file "process")
                    ;;(:file "cli-lib")  ; Disabled for now - needs investigation
-                   ;; (:file "process")  ; Temporarily disabled - Integer namespace compilation issue
                    ))
 
                  (:file "cli"))))
