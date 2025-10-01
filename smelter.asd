@@ -10,7 +10,9 @@
   :depends-on (#:coalton
                #:uiop
                #:yason
+               #:st-json
                #:drakma
+               #:flexi-streams
                #:split-sequence
                #:cl-csv)
 
@@ -34,7 +36,11 @@
                   :serial t
                   :components
                   ((:file "fs")
-                   (:file "process")))
+                   (:file "http")
+                   (:file "json-adapter")
+                   ;;(:file "cli-lib")  ; Disabled for now - needs investigation
+                   ;; (:file "process")  ; Temporarily disabled - Integer namespace compilation issue
+                   ))
 
                  (:file "cli"))))
 

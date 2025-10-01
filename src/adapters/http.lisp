@@ -39,27 +39,6 @@
     (TimeoutError String)
     (ParseError String))
 
-  (declare method-to-keyword (Method -> cl:keyword))
-  (define (method-to-keyword method)
-    "Convert Method to Common Lisp keyword for drakma"
-    (match method
-      ((GET) (lisp cl:keyword () :get))
-      ((POST) (lisp cl:keyword () :post))
-      ((PUT) (lisp cl:keyword () :put))
-      ((DELETE) (lisp cl:keyword () :delete))
-      ((PATCH) (lisp cl:keyword () :patch))))
-
-  (declare headers-to-alist (Headers -> cl:list))
-  (define (headers-to-alist headers)
-    "Convert Headers to Common Lisp alist for drakma"
-    (match headers
-      ((Headers pairs)
-       (lisp cl:list (pairs)
-         (cl:mapcar (cl:lambda (pair)
-                      (cl:cons (fst pair) (snd pair)))
-                    pairs)))))
-
-  (declare alist-to-headers (cl:list -> Headers))
   (define (alist-to-headers alist)
     "Convert alist to Headers"
     (Headers
@@ -114,53 +93,74 @@
     (lisp String (s)
       (cl:string-downcase s)))
 
-  ;; Core HTTP request function using drakma
-  (declare http-request (Request -> (Result HttpError Response)))
-  (define (http-request request)
-    "Make HTTP request using drakma"
-    (match request
-      ((Request url method headers body)
-       (lisp (Result HttpError Response) (url method headers body)
-         (cl:handler-case
-             (cl:multiple-value-bind (response-body status-code response-headers)
-                 (cl:apply #'drakma:http-request 
-                           url
-                           (cl:append
-                            (cl:list :method (method-to-keyword method)
-                                     :additional-headers (headers-to-alist headers)
-                                     :want-stream cl:nil
-                                     :timeout 30)
-                            (cl:when body
-                              (cl:list :content body))))
-               ;; Convert response body to string
-               (cl:let ((body-str (cl:if (cl:stringp response-body)
-                                         response-body
-                                         (cl:if (cl:and response-body
-                                                        (cl:typep response-body '(cl:vector cl:unsigned-byte)))
-                                                (flexi-streams:octets-to-string response-body :external-format :utf-8)
-                                                (cl:format cl:nil "~A" response-body)))))
-                 (Ok (Response status-code 
-                               (alist-to-headers response-headers)
-                               body-str))))
-           (cl:error (e)
-             (Err (NetworkError (cl:format cl:nil "HTTP request failed: ~A" e)))))))))
-
-  ;; Convenience functions
+  ;; Simplified HTTP GET using drakma directly
   (declare http-get (String -> (Result HttpError Response)))
   (define (http-get url)
     "Make GET request"
-    (http-request (Request url GET (Headers Nil) None)))
+    (lisp (Result HttpError Response) (url)
+      (cl:handler-case
+          (cl:multiple-value-bind (body status headers)
+              (drakma:http-request url :method :get :want-stream cl:nil)
+            (cl:let ((body-str (cl:if (cl:stringp body)
+                                      body
+                                      (cl:if (cl:and body (cl:typep body '(cl:vector cl:unsigned-byte)))
+                                             (flexi-streams:octets-to-string body :external-format :utf-8)
+                                             (cl:format cl:nil "~A" body)))))
+              (Ok (Response status
+                            (alist-to-headers headers)
+                            body-str))))
+        (cl:error (e)
+          (Err (NetworkError (cl:format cl:nil "HTTP GET failed: ~A" e)))))))
 
   (declare http-post (String -> String -> (Result HttpError Response)))
-  (define (http-post url body)
+  (define (http-post url post-body)
     "Make POST request with body"
-    (http-request (Request url POST 
-                          (Headers (make-list (Tuple "Content-Type" "application/json")))
-                          (Some body))))
+    (lisp (Result HttpError Response) (url post-body)
+      (cl:handler-case
+          (cl:multiple-value-bind (body status headers)
+              (drakma:http-request url
+                                   :method :post
+                                   :content post-body
+                                   :content-type "application/json"
+                                   :want-stream cl:nil)
+            (cl:let ((body-str (cl:if (cl:stringp body)
+                                      body
+                                      (cl:if (cl:and body (cl:typep body '(cl:vector cl:unsigned-byte)))
+                                             (flexi-streams:octets-to-string body :external-format :utf-8)
+                                             (cl:format cl:nil "~A" body)))))
+              (Ok (Response status
+                            (alist-to-headers headers)
+                            body-str))))
+        (cl:error (e)
+          (Err (NetworkError (cl:format cl:nil "HTTP POST failed: ~A" e)))))))
 
   (declare http-get-json (String -> (Result HttpError Response)))
   (define (http-get-json url)
     "Make GET request expecting JSON response"
-    (http-request (Request url GET 
-                          (Headers (make-list (Tuple "Accept" "application/json")))
-                          None))))
+    (lisp (Result HttpError Response) (url)
+      (cl:handler-case
+          (cl:multiple-value-bind (body status headers)
+              (drakma:http-request url
+                                   :method :get
+                                   :additional-headers '(("Accept" . "application/json"))
+                                   :want-stream cl:nil)
+            (cl:let ((body-str (cl:if (cl:stringp body)
+                                      body
+                                      (cl:if (cl:and body (cl:typep body '(cl:vector cl:unsigned-byte)))
+                                             (flexi-streams:octets-to-string body :external-format :utf-8)
+                                             (cl:format cl:nil "~A" body)))))
+              (Ok (Response status
+                            (alist-to-headers headers)
+                            body-str))))
+        (cl:error (e)
+          (Err (NetworkError (cl:format cl:nil "HTTP GET JSON failed: ~A" e)))))))
+
+  ;; Generic http-request still needed for compatibility
+  (declare http-request (Request -> (Result HttpError Response)))
+  (define (http-request req)
+    "Generic HTTP request - delegates to specific methods"
+    (match req
+      ((Request url GET _ _) (http-get url))
+      ((Request url POST _ (Some body)) (http-post url body))
+      ((Request url POST _ None) (http-post url ""))
+      (_ (Err (NetworkError "Unsupported HTTP method"))))))

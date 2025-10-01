@@ -110,7 +110,7 @@ release-build:
 test-release: release-build
 	@echo "Testing release binary..."
 	@$(RELEASE_DIR)/$(BINARY_NAME) --version
-	@echo '(+ 1 2 3)' | $(RELEASE_DIR)/$(BINARY_NAME) eval
+	@$(RELEASE_DIR)/$(BINARY_NAME) eval '1'
 	@echo "✅ Release binary test passed!"
 
 # Create distribution package

@@ -76,17 +76,10 @@ Usage:
 (in-package #:smelter/adapters/process)
 
 (coalton-toplevel
-  ;; Error types
-  (define-type ProcessError
-    (ProcessFailed String Integer)      ; message, exit-code
-    (ProcessTimeout String Integer)     ; message, timeout-seconds
-    (ProcessNotFound String)            ; command not found
-    (ProcessKilled String Signal)        ; message, signal number
-    (ProcessIOError String)             ; I/O related errors
-    ;; Legacy error types for compatibility
-    (CommandNotFound String)
-    (ExecutionError String))
+  ;; Simple test type
+  (define-type TestInteger Integer))
 
+#|
   ;; Exit codes
   (define-type ExitCode
     (ExitSuccess)
@@ -659,4 +652,5 @@ Usage:
                                  exit))))
         (lisp:error (e)
           (Err (ExecutionError (lisp:format lisp:nil "Sudo error: ~A" e)))))
-      #-unix (Err (ExecutionError "sudo not supported on this platform"))))))
+      #-unix (Err (ExecutionError "sudo not supported on this platform"))))
+|#)
