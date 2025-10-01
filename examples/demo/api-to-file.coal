@@ -1,0 +1,85 @@
+#!/usr/bin/env smt run
+;;; API to File Demo
+;;; Demonstrates: HTTP + JSON + File System integration with error handling
+;;; Usage: ./api-to-file.coal
+;;; Fetches JSON data and saves to file
+
+(coalton-toplevel
+  ;; Generate filename
+  (define (make-filename)
+    "Create filename for saved data"
+    "api-data.json")
+
+  ;; Fetch data from test API
+  (define (fetch-api-data)
+    "Fetch sample JSON data from httpbin.org"
+    (let url = "https://httpbin.org/json")
+    (match (http-get url)
+      ((Ok response)
+       ;; Validate it's valid JSON before saving
+       (match (json-parse response)
+         ((Ok _) (Ok response))  ;; Return raw JSON string for saving
+         ((Err msg) (Err (<> "Invalid JSON: " msg)))))
+      ((Err msg) (Err (<> "HTTP request failed: " msg)))))
+
+  ;; Save data to file with error handling
+  (define (save-to-file filename content)
+    "Write content to file, handling potential errors"
+    (match (file-write filename content)
+      ((Ok _) (Ok filename))
+      ((Err msg) (Err (<> "File write failed: " msg)))))
+
+  ;; Pretty print JSON (simple version for demo)
+  (define (format-json-preview json-str)
+    "Show first 100 chars of JSON"
+    (if (> (string-length json-str) 100)
+        (<> (substring json-str 0 100) "...")
+        json-str))
+
+  ;; Main workflow: fetch -> validate -> save -> report
+  (define (main)
+    (do
+      (println "=== API to File Demo ===")
+
+      ;; Step 1: Fetch data
+      (println "Fetching data from API...")
+      (match (fetch-api-data)
+        ((Err error)
+         (do (println (<> "Error: " error))
+             (exit-failure)))
+
+        ((Ok json-data)
+         (do
+           ;; Step 2: Show preview
+           (println "\nReceived JSON:")
+           (println (format-json-preview json-data))
+
+           ;; Step 3: Save to file
+           (let filename = (make-filename))
+           (println (<> "\nSaving to: " filename))
+
+           (match (save-to-file filename json-data)
+             ((Err error)
+              (do (println (<> "Error: " error))
+                  (exit-failure)))
+
+             ((Ok saved-file)
+              (do
+                ;; Step 4: Verify file exists
+                (match (file-exists saved-file)
+                  ((Ok True)
+                   (do (println (<> "✓ Successfully saved to " saved-file))
+                       (match (file-size saved-file)
+                         ((Ok size)
+                          (println (<> "  File size: " (<> (into size) " bytes"))))
+                         ((Err _) Unit))
+                       (println "\n✓ Demo completed successfully!")
+                       (exit-success)))
+
+                  ((Ok False)
+                   (do (println "Error: File was not created")
+                       (exit-failure)))
+
+                  ((Err msg)
+                   (do (println (<> "Error checking file: " msg))
+                       (exit-failure)))))))))))))

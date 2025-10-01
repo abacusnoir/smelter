@@ -1,0 +1,41 @@
+#!/usr/bin/env smt run
+;;; Weather Check Demo
+;;; Demonstrates: HTTP API, JSON parsing, formatted output
+;;; Usage: ./weather-check.coal
+;;; Shows weather for San Francisco
+
+(coalton-toplevel
+  ;; Type-safe weather data
+  (define-type WeatherInfo
+    (WeatherInfo String String))
+
+  ;; Fetch weather data from wttr.in
+  (define (fetch-weather city)
+    "Fetch weather data for a city using wttr.in API"
+    ;; Use simple text format instead of JSON for easier demo
+    (let url = (<> "https://wttr.in/" (<> city "?format=%l:+%C+%t")))
+    (match (http-get url)
+      ((Ok response)
+       (Ok (WeatherInfo city response)))
+      ((Err msg)
+       (Err (<> "Network error: " msg)))))
+
+  ;; Format weather info nicely
+  (define (format-weather info)
+    (match info
+      ((WeatherInfo city weather-data)
+       (<> "🌤️  " (<> city (<> " Weather:\n" weather-data))))))
+
+  ;; Main entry point
+  (define (main)
+    (do
+      (println "=== Weather Check Demo ===")
+      (println "Fetching weather data...\n")
+      (match (fetch-weather "San Francisco")
+        ((Ok weather)
+         (do (println (format-weather weather))
+             (println "\n✓ Demo completed successfully!")
+             (exit-success)))
+        ((Err error)
+         (do (println (<> "Error: " error))
+             (exit-failure)))))))

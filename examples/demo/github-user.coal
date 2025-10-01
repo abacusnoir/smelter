@@ -1,0 +1,59 @@
+#!/usr/bin/env smt run
+;;; GitHub User Info Demo
+;;; Demonstrates: HTTP GET, JSON parsing, error handling, type safety
+;;; Usage: ./github-user.coal
+;;; Fetches info for "octocat" (GitHub's mascot)
+
+(coalton-toplevel
+  ;; Type-safe user data structure
+  (define-type UserInfo
+    (UserInfo String String String))
+
+  ;; Fetch and parse GitHub user data
+  (define (fetch-github-user username)
+    "Fetch GitHub user info and parse JSON response safely"
+    (let url = (<> "https://api.github.com/users/" username))
+    (match (smelter/adapters/http::http-get url)
+      ;; Network request succeeded
+      ((Ok response)
+       (let body = (smelter/adapters/http::response-body response))
+       (match (smelter/adapters/json::json-parse body)
+         ;; JSON parsing succeeded - extract fields
+         ((Ok json-obj)
+          (match (Tuple (smelter/adapters/json::json-get "name" json-obj)
+                        (smelter/adapters/json::json-get "login" json-obj)
+                        (smelter/adapters/json::json-get "bio" json-obj))
+            ;; All required fields present (bio is optional, so provide default)
+            ((Tuple (Some name) (Some login) bio-opt)
+             (let bio = (match bio-opt
+                          ((Some b) b)
+                          (None "No bio available")))
+             (Ok (UserInfo name login bio)))
+            ;; Missing fields
+            (_ (Err "Missing required fields in response"))))
+         ;; JSON parsing failed
+         ((Err msg) (Err (<> "JSON parse error: " msg)))))
+      ;; Network request failed
+      ((Err msg) (Err (<> "HTTP error: " msg)))))
+
+  ;; Format user info for display
+  (define (format-user-info info)
+    (match info
+      ((UserInfo name login bio)
+       (<> "GitHub User: " (<> name
+         (<> "\nUsername: @" (<> login
+           (<> "\nBio: " bio))))))))
+
+  ;; Main entry point
+  (define (main)
+    (do
+      (smelter.stdlib.io::println "=== GitHub User Info Demo ===")
+      (smelter.stdlib.io::println "Fetching data for 'octocat'...\n")
+      (match (fetch-github-user "octocat")
+        ((Ok user-info)
+         (do (smelter.stdlib.io::println (format-user-info user-info))
+             (smelter.stdlib.io::println "\n✓ Demo completed successfully!")
+             (smelter.stdlib.system::exit-success)))
+        ((Err error-msg)
+         (do (smelter.stdlib.io::println (<> "Error: " error-msg))
+             (smelter.stdlib.system::exit-failure)))))))

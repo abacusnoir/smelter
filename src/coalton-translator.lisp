@@ -149,6 +149,9 @@
       (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%")
       ;; Import adapters
       (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/fs :coalton-user))~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/http :coalton-user))~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/json :coalton-user))~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/cli :coalton-user))~%")
       
       (if (= (length forms) 1)
           ;; Single expression: evaluate directly in coalton context
@@ -209,7 +212,10 @@
       (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.io :coalton-user))~%")
       (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%")
       ;; Import adapters
-      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/fs :coalton-user))~%~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/fs :coalton-user))~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/http :coalton-user))~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/json :coalton-user))~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter/adapters/cli :coalton-user))~%~%")
       
       ;; Only include coalton-toplevel if we have Coalton forms
       (when coalton-forms
