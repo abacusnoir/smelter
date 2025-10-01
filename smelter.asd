@@ -38,7 +38,11 @@
                   ((:file "fs")
                    (:file "http")
                    (:file "json-adapter")
-                   (:file "process")
+                   (:module "process"
+                    :components
+                    ((:file "process")
+                     (:file "builder" :depends-on ("process"))
+                     (:file "platform" :depends-on ("process"))))
                    ;;(:file "cli-lib")  ; Disabled for now - needs investigation
                    ))
 
