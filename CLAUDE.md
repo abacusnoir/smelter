@@ -128,6 +128,7 @@ The final binary is self-contained with no runtime dependencies.
 ## Feature Documentation
 
 ### Implemented Features
+- **[Launch-Ready Achievement](docs/launch-ready-achievement.md)** - Show functions (show-int, show-bool) + 5 working launch examples + verification script - Complete HN launch readiness with 11/11 tests passing
 - **[Standard Library I/O Implementation](docs/stdlib-io-implementation.md)** - Core I/O package (`smelter.stdlib.io`) with print, println, and read-line functions - enables batteries-included I/O for clean Coalton scripts
 - **[Process Adapter Phase 1 Improvements](docs/process-adapter-phase1-improvements.md)** - Safe command construction with shell escaping and cross-platform OS detection
 - **[Process Adapter Implementation](docs/process-adapter-implementation.md)** - Simplified string-based process execution adapter (5 of 6 adapters now working)
@@ -153,7 +154,9 @@ The final binary is self-contained with no runtime dependencies.
 
 ### Known Limitations
 - **[SBCL Runtime Limitations](docs/sbcl-runtime-limitations.md)** - CLI argument handling limitations inherited from SBCL
-- **Missing `show` function**: Coalton-prelude's `show` not automatically available (examples that convert numbers to strings need manual imports)
+- **Integer division**: No `div` function available yet (workaround: use multiplication/subtraction)
+- **Floating point**: No Float type or show-float function (integers only for now)
+- **Advanced show functions**: Only show-int and show-bool available (no show for lists, tuples, custom types)
 - **Datetime stdlib disabled**: `smelter-datetime.lisp` has compilation errors and is temporarily disabled from build
 - **String Operations**: Some string functions need refinement for full compatibility
 
