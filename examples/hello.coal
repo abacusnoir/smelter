@@ -1,47 +1,12 @@
 #!/usr/bin/env smt run
 ;;;; Hello World - Minimal Smelter/Coalton Example
-;;;; Demonstrates basic functionality and typed functions
+;;;; Demonstrates clean Coalton syntax with I/O stdlib
 
-;; Define a simple greeting function with type annotation
-(coalton-toplevel
-  (declare greet (String -> String))
-  (define (greet name)
-    (<> "Hello, " (<> name "!"))))
+(declare greet (String -> String))
+(define (greet name)
+  (<> "Hello from " (<> name "!")))
 
-;; Define a factorial function to show recursion and arithmetic
-(coalton-toplevel
-  (declare factorial (Integer -> Integer))
-  (define (factorial n)
-    (if (== n 0)
-        1
-        (* n (factorial (- n 1))))))
-
-;; Define fibonacci to demonstrate more complex recursion
-(coalton-toplevel
-  (declare fibonacci (Integer -> Integer))
-  (define (fibonacci n)
-    (if (<= n 1)
-        n
-        (+ (fibonacci (- n 1))
-           (fibonacci (- n 2))))))
-
-;; Main function - entry point when run as script
-(defun main ()
-  "Main entry point for the hello.coal script"
-  
-  ;; Simple greeting
-  (format t "~A~%" (coalton:coalton (greet "Smelter")))
-  
-  ;; Demonstrate arithmetic and function calls
-  (format t "2 + 3 = ~A~%" (coalton:coalton (+ 2 3)))
-  (format t "5! = ~A~%" (coalton:coalton (factorial 5)))
-  
-  ;; Show fibonacci sequence
-  (format t "Fibonacci sequence (0-10):~%")
-  (cl:loop for i from 0 to 10
-           do (format t "fib(~A) = ~A~%" 
-                     i 
-                     (coalton:coalton (fibonacci i))))
-  
-  ;; Demonstrate type safety
-  (format t "~%Type-safe computation completed!~%"))
+(define main
+  (progn
+    (smelter.stdlib.io:io-println (greet "Smelter"))
+    (smelter.stdlib.io:io-println "Type-safe scripting with Coalton")))

@@ -30,7 +30,20 @@
                  (:module "stdlib"
                   :serial t
                   :components
-                  ((:file "json")))
+                  (;; Core utilities
+                   (:file "smelter-prelude")
+                   (:file "smelter-system")
+                   (:file "smelter-file")
+                   (:file "io")
+                   ;; JSON support
+                   (:file "json")
+                   ;; Additional libraries
+                   (:file "smelter-http")
+                   (:file "smelter-json")
+                   (:file "smelter-csv")
+                   ;;(:file "smelter-datetime")  ; Disabled - has compilation errors
+                   ;;(:file "smelter-test")      ; Disabled - depends on datetime
+                   ))
 
                  (:module "adapters"
                   :serial t

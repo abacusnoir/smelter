@@ -50,6 +50,24 @@ Scripts run in `smelter-user` package with:
 - Auto-execution of `main` function if present
 - Proper error handling and exit codes
 
+### Script Syntax (Clean Coalton)
+
+Smelter uses **clean Coalton syntax** without boilerplate. Scripts look like this:
+
+```lisp
+#!/usr/bin/env smt run
+
+(declare add (Integer -> Integer -> Integer))
+(define (add x y) (+ x y))
+
+(define main
+  (println (show (add 2 3))))
+```
+
+**No `coalton-toplevel` wrappers needed!** The translator automatically handles the conversion.
+
+**For backward compatibility**, the old `(coalton-toplevel ...)` syntax still works, but clean syntax is preferred for better UX.
+
 ## Testing
 
 Run `make test` to execute smoke tests covering:
@@ -80,8 +98,23 @@ Edit `build/create-image.lisp` to:
 
 Add .coal files to `examples/` with:
 - Shebang: `#!/usr/bin/env smt run`
-- Proper Coalton toplevel declarations
+- Clean Coalton syntax (no `coalton-toplevel` wrapper)
+- Type declarations using `(declare name Type)`
+- Function definitions using `(define (name args) body)`
 - `main` function for script execution
+
+Example structure:
+```lisp
+#!/usr/bin/env smt run
+;; Comments describing the example
+
+(declare my-function (Type -> Type))
+(define (my-function arg)
+  body)
+
+(define main
+  (println "Hello from Smelter!"))
+```
 
 ## Dependencies
 
@@ -95,6 +128,7 @@ The final binary is self-contained with no runtime dependencies.
 ## Feature Documentation
 
 ### Implemented Features
+- **[Standard Library I/O Implementation](docs/stdlib-io-implementation.md)** - Core I/O package (`smelter.stdlib.io`) with print, println, and read-line functions - enables batteries-included I/O for clean Coalton scripts
 - **[Process Adapter Phase 1 Improvements](docs/process-adapter-phase1-improvements.md)** - Safe command construction with shell escaping and cross-platform OS detection
 - **[Process Adapter Implementation](docs/process-adapter-implementation.md)** - Simplified string-based process execution adapter (5 of 6 adapters now working)
 - **[Simplified Coalton-Toplevel Implementation](docs/coalton-toplevel-implementation.md)** - Pure Coalton support using native Coalton contexts instead of preprocessing
@@ -119,7 +153,8 @@ The final binary is self-contained with no runtime dependencies.
 
 ### Known Limitations
 - **[SBCL Runtime Limitations](docs/sbcl-runtime-limitations.md)** - CLI argument handling limitations inherited from SBCL
-- **Limited Standard Library**: JSON and HTTP functions not yet exposed to user scripts (available internally)
+- **Missing `show` function**: Coalton-prelude's `show` not automatically available (examples that convert numbers to strings need manual imports)
+- **Datetime stdlib disabled**: `smelter-datetime.lisp` has compilation errors and is temporarily disabled from build
 - **String Operations**: Some string functions need refinement for full compatibility
 
 ## Documentation Maintenance
