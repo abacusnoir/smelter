@@ -30,7 +30,7 @@ Usage:
   (:local-nicknames (#:lisp #:common-lisp))
   (:export
    ;; Types
-   #:ProcessError #:ProcessFailed
+   #:ProcessError #:ProcessFailed #:ProcessTimeout
    #:ProcessResult
 
    ;; Core execution
@@ -46,9 +46,10 @@ Usage:
 (in-package :smelter/adapters/process)
 
 (coalton-toplevel
-  ;; Simplified error type - just a message
+  ;; Simplified error type - message with optional timeout variant
   (define-type ProcessError
-    (ProcessFailed String))
+    (ProcessFailed String)
+    (ProcessTimeout String))
 
   ;; Simple result type - stdout, stderr, exit code
   (define-type ProcessResult
