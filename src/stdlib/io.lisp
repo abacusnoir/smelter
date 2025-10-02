@@ -8,6 +8,9 @@
    #:io-print
    #:io-println
    #:io-read-line
+   ;; Show functions for output
+   #:show-int
+   #:show-bool
    ;; Error handling
    #:IOError))
 
@@ -47,4 +50,17 @@
       (cl:let ((line (cl:read-line cl:*standard-input* cl:nil cl:nil)))
         (cl:if line
                (Some line)
-               None)))))
+               None))))
+
+  ;;; Show Functions - Convert values to strings
+
+  (declare show-int (Integer -> String))
+  (define (show-int n)
+    "Convert an integer to a string"
+    (lisp String (n)
+      (cl:format cl:nil "~D" n)))
+
+  (declare show-bool (Boolean -> String))
+  (define (show-bool b)
+    "Convert a boolean to a string"
+    (if b "True" "False")))

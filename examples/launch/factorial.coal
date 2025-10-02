@@ -1,0 +1,14 @@
+#!/usr/bin/env smt run
+;;;; Factorial - Type Safety and Recursion
+
+(declare factorial (Integer -> Integer))
+(define (factorial n)
+  "Calculate factorial with type-safe recursion"
+  (if (== n 0)
+      1
+      (* n (factorial (- n 1)))))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-print "5! = ")
+    (smelter.stdlib.io:io-println (smelter.stdlib.io:show-int (factorial 5)))))

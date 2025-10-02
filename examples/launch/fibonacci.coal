@@ -1,0 +1,14 @@
+#!/usr/bin/env smt run
+;;;; Fibonacci - Recursive Implementation with Type Safety
+
+(declare fib (Integer -> Integer))
+(define (fib n)
+  "Calculate fibonacci number recursively"
+  (if (<= n 1)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-print "fib(10) = ")
+    (smelter.stdlib.io:io-println (smelter.stdlib.io:show-int (fib 10)))))

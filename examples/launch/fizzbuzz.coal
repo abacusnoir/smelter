@@ -1,0 +1,19 @@
+#!/usr/bin/env smt run
+;;;; FizzBuzz - Classic programming challenge
+
+(declare fizzbuzz-single (Integer -> String))
+(define (fizzbuzz-single n)
+  (if (== (mod n 15) 0)
+      "FizzBuzz"
+      (if (== (mod n 3) 0)
+          "Fizz"
+          (if (== (mod n 5) 0)
+              "Buzz"
+              (smelter.stdlib.io:show-int n)))))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println (fizzbuzz-single 1))
+    (smelter.stdlib.io:io-println (fizzbuzz-single 3))
+    (smelter.stdlib.io:io-println (fizzbuzz-single 5))
+    (smelter.stdlib.io:io-println (fizzbuzz-single 15))))

@@ -1,0 +1,17 @@
+#!/usr/bin/env smt run
+;;;; Double Numbers - Simple Integer Doubling
+
+(declare double (Integer -> Integer))
+(define (double n)
+  (* n 2))
+
+(declare triple (Integer -> Integer))
+(define (triple n)
+  (* n 3))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-print "double(21) = ")
+    (smelter.stdlib.io:io-println (smelter.stdlib.io:show-int (double 21)))
+    (smelter.stdlib.io:io-print "triple(14) = ")
+    (smelter.stdlib.io:io-println (smelter.stdlib.io:show-int (triple 14)))))

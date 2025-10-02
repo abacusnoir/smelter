@@ -1,0 +1,17 @@
+#!/usr/bin/env smt run
+;;;; Advanced Hello - Demonstrates string operations and functions
+
+(declare greet (String -> String))
+(define (greet name)
+  (<> "Hello, " (<> name "!")))
+
+(declare count-length (String -> Integer))
+(define (count-length s)
+  (lisp Integer (s)
+    (cl:length s)))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println (greet "Smelter"))
+    (smelter.stdlib.io:io-println (greet "Coalton"))
+    (smelter.stdlib.io:io-println "Type-safe scripting with clean syntax")))

@@ -1,0 +1,11 @@
+#!/usr/bin/env smt run
+;;;; Hello World - Clean Coalton Syntax
+
+(declare greet (String -> String))
+(define (greet name)
+  (<> "Hello from " (<> name "!")))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println (greet "Smelter"))
+    (smelter.stdlib.io:io-println "Type-safe scripting with Coalton")))
