@@ -70,13 +70,34 @@ Smelter uses **clean Coalton syntax** without boilerplate. Scripts look like thi
 
 ## Testing
 
-Run `make test` to execute smoke tests covering:
-- Basic CLI commands (--version, --help)
-- Expression evaluation (`smt eval`)
-- Script execution (`smt run`)
-- REPL functionality
-- Shebang script execution
-- Error conditions and edge cases
+Smelter has comprehensive test coverage with **112+ test cases** across 7 test suites:
+
+### Quick Testing
+```bash
+make test                # Basic tests (smoke + eval regression)
+make test-comprehensive  # Comprehensive suite (74 tests) - recommended
+make test-all            # ALL test suites (112+ tests)
+```
+
+### Test Suites
+- **Comprehensive Suite** (`make test-comprehensive`): 74 tests covering basic functionality, edge cases, pattern matching, file operations, clean syntax, performance, error recovery, stdlib, launch examples, and CLI
+- **Stress Tests** (`make test-stress`): 14 tests for performance under load, large inputs, rapid execution, recursion depth, and memory stability
+- **Cross-Platform Tests** (`make test-cross-platform`): 24 tests for shell compatibility, locales, file permissions, path handling, exit codes, and concurrent execution
+- **Smoke Tests**: Basic CLI functionality
+- **Eval Regression Tests**: Pattern matching validation
+- **JSON Regression Tests**: JSON parsing and generation
+- **Launch Verification Tests**: HN launch readiness (11 tests)
+
+### Individual Test Commands
+```bash
+./test/comprehensive-test-suite.sh  # 74 tests
+./test/stress-test.sh               # 14 tests
+./test/cross-platform-test.sh       # 24 tests
+./test/smoke-test.sh                # Smoke tests
+./test/eval-regression.sh           # Eval tests
+```
+
+See **[Comprehensive Test Coverage Achievement](docs/comprehensive-test-coverage-achievement.md)** for detailed test documentation.
 
 ## Common Development Tasks
 
@@ -128,6 +149,7 @@ The final binary is self-contained with no runtime dependencies.
 ## Feature Documentation
 
 ### Implemented Features
+- **[Comprehensive Test Coverage Achievement](docs/comprehensive-test-coverage-achievement.md)** - Production-ready test coverage with 112+ tests across comprehensive, stress, and cross-platform suites - ensuring "smt scripts just work" for HN launch
 - **[Launch-Ready Achievement](docs/launch-ready-achievement.md)** - Show functions (show-int, show-bool) + 5 working launch examples + verification script - Complete HN launch readiness with 11/11 tests passing
 - **[Standard Library I/O Implementation](docs/stdlib-io-implementation.md)** - Core I/O package (`smelter.stdlib.io`) with print, println, and read-line functions - enables batteries-included I/O for clean Coalton scripts
 - **[Process Adapter Phase 1 Improvements](docs/process-adapter-phase1-improvements.md)** - Safe command construction with shell escaping and cross-platform OS detection

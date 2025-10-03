@@ -1,6 +1,6 @@
 # Smelter Makefile
 
-.PHONY: all build test test-eval test-json clean clean-all deps install compress release release-build test-release release-all info help
+.PHONY: all build test test-eval test-json test-comprehensive test-stress test-cross-platform test-all clean clean-all deps install compress release release-build test-release release-all info help
 
 # Version and build info
 VERSION := $(shell git describe --tags --exact-match 2>/dev/null || echo "0.1.0")
@@ -71,6 +71,45 @@ test-eval: $(TARGET)
 test-json: $(TARGET)
 	@echo "Running JSON functionality tests..."
 	@./test/json-regression.sh
+
+# Run comprehensive test suite
+test-comprehensive: $(TARGET)
+	@echo "Running comprehensive test suite..."
+	@./test/comprehensive-test-suite.sh
+
+# Run stress tests
+test-stress: $(TARGET)
+	@echo "Running stress tests..."
+	@./test/stress-test.sh
+
+# Run cross-platform tests
+test-cross-platform: $(TARGET)
+	@echo "Running cross-platform tests..."
+	@./test/cross-platform-test.sh
+
+# Run all test suites
+test-all: $(TARGET)
+	@echo "Running ALL test suites..."
+	@echo ""
+	@echo "=== Smoke Tests ==="
+	@./test/smoke-test.sh
+	@echo ""
+	@echo "=== Eval Regression Tests ==="
+	@./test/eval-regression.sh
+	@echo ""
+	@echo "=== JSON Regression Tests ==="
+	@./test/json-regression.sh
+	@echo ""
+	@echo "=== Comprehensive Test Suite ==="
+	@./test/comprehensive-test-suite.sh
+	@echo ""
+	@echo "=== Stress Tests ==="
+	@./test/stress-test.sh
+	@echo ""
+	@echo "=== Cross-Platform Tests ==="
+	@./test/cross-platform-test.sh
+	@echo ""
+	@echo "✅ ALL TEST SUITES COMPLETED!"
 
 # Clean build artifacts
 clean:
@@ -145,12 +184,16 @@ help:
 	@echo "==================="
 	@echo ""
 	@echo "Main targets:"
-	@echo "  make build      - Build the smt executable"
-	@echo "  make test       - Run comprehensive tests (smoke + eval regression)"
-	@echo "  make test-eval  - Run eval mode regression tests only"
-	@echo "  make test-json  - Run JSON functionality tests only"
-	@echo "  make clean      - Clean build artifacts"
-	@echo "  make deps       - Install dependencies (Quicklisp and Coalton)"
+	@echo "  make build              - Build the smt executable"
+	@echo "  make test               - Run basic tests (smoke + eval regression)"
+	@echo "  make test-all           - Run ALL test suites (comprehensive coverage)"
+	@echo "  make test-comprehensive - Run comprehensive test suite (74 tests)"
+	@echo "  make test-stress        - Run stress tests (performance & load)"
+	@echo "  make test-cross-platform- Run cross-platform compatibility tests"
+	@echo "  make test-eval          - Run eval mode regression tests only"
+	@echo "  make test-json          - Run JSON functionality tests only"
+	@echo "  make clean              - Clean build artifacts"
+	@echo "  make deps               - Install dependencies (Quicklisp and Coalton)"
 	@echo ""
 	@echo "Development:"
 	@echo "  make dev        - Quick rebuild cycle (clean + build + test)"
