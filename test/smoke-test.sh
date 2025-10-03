@@ -194,7 +194,8 @@ test_run_missing_arg() {
 
 test_shebang_execution() {
     if [ -x "$EXAMPLES_DIR/hello.coal" ]; then
-        run_test_with_output "Shebang execution" "$EXAMPLES_DIR/hello.coal" "Hello from Smelter"
+        # Temporarily add current directory to PATH for shebang execution
+        (export PATH="$PWD:$PATH" && run_test_with_output "Shebang execution" "$EXAMPLES_DIR/hello.coal" "Hello from Smelter")
     else
         log_warning "Skipping shebang test - hello.coal not executable"
     fi
@@ -202,11 +203,18 @@ test_shebang_execution() {
 
 test_repl_batch() {
     log_info "Testing REPL with batch input"
+
+    # Skip REPL test on systems without timeout command
+    if ! command -v timeout &> /dev/null; then
+        log_warning "Skipping REPL test - timeout command not available"
+        return 0
+    fi
+
     ((TESTS_RUN++))
-    
-    # Test REPL with echo input
+
+    # Test REPL with echo input - send expression and quit command
     local output
-    if output=$(echo '(+ 1 2 3)' | timeout 5 "$SMT_BINARY" repl 2>&1); then
+    if output=$(printf '(+ 1 2 3)\n:quit\n' | timeout 5 "$SMT_BINARY" repl 2>&1); then
         if echo "$output" | grep -q "6"; then
             log_success "REPL batch input"
         else
@@ -263,8 +271,9 @@ create_test_files() {
 (declare square (Integer -> Integer))
 (define (square x) (* x x))
 
-(defun main ()
-  (format t "~A~%" (coalton:coalton (square 8))))
+(define main
+  (smelter.stdlib.io:io-println
+    (smelter.stdlib.io:show-int (square 8))))
 EOF
     
     # Create a fibonacci test (clean syntax)
@@ -276,8 +285,9 @@ EOF
   (if (<= n 1) n
       (+ (fib (- n 1)) (fib (- n 2)))))
 
-(defun main ()
-  (format t "~A~%" (coalton:coalton (fib 10))))
+(define main
+  (smelter.stdlib.io:io-println
+    (smelter.stdlib.io:show-int (fib 10))))
 EOF
 }
 

@@ -1,15 +1,15 @@
 #!/usr/bin/env smt run
-;;;; Fibonacci Numbers - Demonstrating recursion and optimization
+;;;; Fibonacci Numbers - Clean Coalton syntax demonstration
 
-;; Naive recursive implementation
-(declare fib-naive (Integer -> Integer))
-(define (fib-naive n)
+;; Simple recursive fibonacci
+(declare fib (Integer -> Integer))
+(define (fib n)
   (if (<= n 1)
       n
-      (+ (fib-naive (- n 1))
-         (fib-naive (- n 2)))))
+      (+ (fib (- n 1))
+         (fib (- n 2)))))
 
-;; Optimized tail-recursive implementation
+;; Optimized tail-recursive version
 (declare fib-tail (Integer -> Integer -> Integer -> Integer))
 (define (fib-tail n a b)
   (if (== n 0)
@@ -20,51 +20,11 @@
 (define (fib-fast n)
   (fib-tail n 0 1))
 
-;; Generate fibonacci sequence up to n
-(declare fib-sequence (Integer -> List Integer))
-(define (fib-sequence n)
-  (if (<= n 0)
-      (list)
-      (if (== n 1)
-          (list 0)
-          (if (== n 2)
-              (list 0 1)
-              (let ((prev (fib-sequence (- n 1))))
-                (let ((last (head (reverse prev)))
-                      (second-last (head (tail (reverse prev)))))
-                  (append prev (list (+ last second-last)))))))))
-
-(defun main ()
-  "Demonstrate different fibonacci implementations"
-  
-  (format t "Fibonacci Demonstrations~%")
-  (format t "========================~%~%")
-  
-  ;; Show first 15 fibonacci numbers
-  (format t "First 15 Fibonacci numbers:~%")
-  (cl:loop for i from 0 to 14
-           do (format t "F(~2A) = ~8A~%" 
-                     i 
-                     (coalton:coalton (fib-fast i))))
-  
-  (format t "~%Performance comparison for F(35):~%")
-  
-  ;; Time the naive approach (warning: slow!)
-  (format t "Computing F(35) with naive recursion... ")
-  (let ((start-time (get-internal-real-time)))
-    (let ((result (coalton:coalton (fib-naive 35))))
-      (let ((end-time (get-internal-real-time))
-            (elapsed (/ (- end-time start-time) 
-                       internal-time-units-per-second)))
-        (format t "Result: ~A (Time: ~,3F seconds)~%" result elapsed))))
-  
-  ;; Time the optimized approach
-  (format t "Computing F(35) with tail recursion... ")
-  (let ((start-time (get-internal-real-time)))
-    (let ((result (coalton:coalton (fib-fast 35))))
-      (let ((end-time (get-internal-real-time))
-            (elapsed (/ (- end-time start-time) 
-                       internal-time-units-per-second)))
-        (format t "Result: ~A (Time: ~,3F seconds)~%" result elapsed))))
-  
-  (format t "~%The optimized version is much faster!~%"))
+(define main
+  (progn
+    (smelter.stdlib.io:io-println "Fibonacci Numbers:")
+    (smelter.stdlib.io:io-println "==================")
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println (<> "fib(10) = " (smelter.stdlib.io:show-int (fib 10))))
+    (smelter.stdlib.io:io-println (<> "fib(20) = " (smelter.stdlib.io:show-int (fib-fast 20))))
+    (smelter.stdlib.io:io-println (<> "fib(30) = " (smelter.stdlib.io:show-int (fib-fast 30))))))
