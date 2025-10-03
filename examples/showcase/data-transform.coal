@@ -1,0 +1,33 @@
+#!/usr/bin/env smt run
+;;;; Data Transformation - Type-safe data processing pipeline
+
+(declare celsius-to-fahrenheit (Integer -> Integer))
+(define (celsius-to-fahrenheit c)
+  (+ 32 (* c 2)))
+
+(declare classify-temp (Integer -> String))
+(define (classify-temp fahrenheit)
+  (if (< fahrenheit 32)
+      "Freezing"
+      (if (< fahrenheit 70)
+          "Cool"
+          (if (< fahrenheit 90)
+              "Warm"
+              "Hot"))))
+
+(declare process-temp (Integer -> String))
+(define (process-temp celsius)
+  (classify-temp (celsius-to-fahrenheit celsius)))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println "=== Type-Safe Data Pipeline ===")
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println "0 C:")
+    (smelter.stdlib.io:io-println (process-temp 0))
+    (smelter.stdlib.io:io-println "10 C:")
+    (smelter.stdlib.io:io-println (process-temp 10))
+    (smelter.stdlib.io:io-println "20 C:")
+    (smelter.stdlib.io:io-println (process-temp 20))
+    (smelter.stdlib.io:io-println "30 C:")
+    (smelter.stdlib.io:io-println (process-temp 30))))

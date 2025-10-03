@@ -1,0 +1,31 @@
+#!/usr/bin/env smt run
+;;;; Rosetta Stone - Same brevity as Python/Ruby, but type-safe!
+
+(declare double (Integer -> Integer))
+(define (double n)
+  (* n 2))
+
+(declare sum-range (Integer -> Integer -> Integer))
+(define (sum-range start end)
+  (if (> start end)
+      0
+      (+ start (sum-range (+ start 1) end))))
+
+(declare is-even (Integer -> Boolean))
+(define (is-even n)
+  (== (mod n 2) 0))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println "=== Smelter: Expressive AND Type-Safe ===")
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println "Double a number:")
+    (smelter.stdlib.io:io-println (smelter.stdlib.io:show-int (double 21)))
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println "Sum range 1 to 10:")
+    (smelter.stdlib.io:io-println (smelter.stdlib.io:show-int (sum-range 1 10)))
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println "Is 42 even?")
+    (smelter.stdlib.io:io-println (smelter.stdlib.io:show-bool (is-even 42)))
+    (smelter.stdlib.io:io-println "Is 43 even?")
+    (smelter.stdlib.io:io-println (smelter.stdlib.io:show-bool (is-even 43)))))

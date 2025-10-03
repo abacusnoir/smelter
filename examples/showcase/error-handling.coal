@@ -1,0 +1,27 @@
+#!/usr/bin/env smt run
+;;;; Error Handling - Compile-time guarantees for failure cases
+
+(declare parse-int-safe (String -> (Result String Integer)))
+(define (parse-int-safe str)
+  (if (== str "42")
+      (Ok 42)
+      (if (== str "100")
+          (Ok 100)
+          (Err "Not a valid number"))))
+
+(declare process-result ((Result String Integer) -> String))
+(define (process-result result)
+  (match result
+    ((Ok n) (smelter.stdlib.io:show-int n))
+    ((Err msg) msg)))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println "=== Type-Safe Error Handling ===")
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println "Parse valid numbers:")
+    (smelter.stdlib.io:io-println (process-result (parse-int-safe "42")))
+    (smelter.stdlib.io:io-println (process-result (parse-int-safe "100")))
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println "Parse invalid number:")
+    (smelter.stdlib.io:io-println (process-result (parse-int-safe "xyz")))))

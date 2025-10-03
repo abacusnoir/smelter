@@ -1,0 +1,33 @@
+#!/usr/bin/env smt run
+;;;; Build Pipeline - Type-safe build scripts that can't fail at runtime
+
+(declare check-step (String -> Boolean -> String))
+(define (check-step name success)
+  (if success
+      name
+      "FAILED"))
+
+(declare run-tests (Integer -> Boolean))
+(define (run-tests count)
+  (> count 0))
+
+(declare check-coverage (Integer -> Boolean))
+(define (check-coverage percent)
+  (>= percent 80))
+
+(declare build-project (Boolean -> Boolean -> Boolean))
+(define (build-project tests-pass coverage-ok)
+  (and tests-pass coverage-ok))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println "=== Type-Safe Build Pipeline ===")
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println (check-step "Run tests" (run-tests 42)))
+    (smelter.stdlib.io:io-println (check-step "Check coverage" (check-coverage 85)))
+    (smelter.stdlib.io:io-println (check-step "Build" (build-project True True)))
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println "Failed build:")
+    (smelter.stdlib.io:io-println (check-step "Run tests" (run-tests 0)))
+    (smelter.stdlib.io:io-println (check-step "Check coverage" (check-coverage 50)))
+    (smelter.stdlib.io:io-println (check-step "Build" (build-project False False)))))

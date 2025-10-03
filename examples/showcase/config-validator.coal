@@ -1,0 +1,19 @@
+#!/usr/bin/env smt run
+;;;; Type-Safe Config Validator - Catch errors at compile time!
+
+(declare valid-port (Integer -> Boolean))
+(define (valid-port port)
+  (and (>= port 1024) (<= port 65535)))
+
+(declare check-port (Integer -> String))
+(define (check-port port)
+  (if (valid-port port)
+      "Valid"
+      "Invalid"))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println (check-port 8080))
+    (smelter.stdlib.io:io-println (check-port 80))
+    (smelter.stdlib.io:io-println (check-port 3000))
+    (smelter.stdlib.io:io-println (check-port 99999))))

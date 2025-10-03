@@ -1,0 +1,29 @@
+#!/usr/bin/env smt run
+;;;; Type Safety Demo - Compile-time guarantees vs runtime surprises
+
+(declare subtract-safe (Integer -> Integer -> String))
+(define (subtract-safe a b)
+  (if (> b 1000)
+      "Error: Value too large"
+      (smelter.stdlib.io:show-int (- a b))))
+
+(declare process-age (Integer -> String))
+(define (process-age age)
+  (if (< age 0)
+      "Error: Age cannot be negative"
+      (if (> age 150)
+          "Error: Age seems unrealistic"
+          "Age is valid")))
+
+(define main
+  (progn
+    (smelter.stdlib.io:io-println "=== Type Safety in Action ===")
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println "Safe arithmetic:")
+    (smelter.stdlib.io:io-println (subtract-safe 100 50))
+    (smelter.stdlib.io:io-println (subtract-safe 100 2000))
+    (smelter.stdlib.io:io-println "")
+    (smelter.stdlib.io:io-println "Age validation:")
+    (smelter.stdlib.io:io-println (process-age 25))
+    (smelter.stdlib.io:io-println (process-age -5))
+    (smelter.stdlib.io:io-println (process-age 200))))

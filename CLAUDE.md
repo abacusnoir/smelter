@@ -137,6 +137,25 @@ Example structure:
   (println "Hello from Smelter!"))
 ```
 
+### Showcase Examples
+
+The `examples/showcase/` directory contains **6 production-ready demos** (19-33 lines each) demonstrating real-world type-safe scripting:
+
+- **config-validator.coal** (19 lines) - Type-safe configuration validation
+- **error-handling.coal** (27 lines) - Result types for guaranteed error handling
+- **type-safety.coal** (29 lines) - Compile-time type checking examples
+- **rosetta.coal** (31 lines) - Expressive code with type safety
+- **build-pipeline.coal** (33 lines) - Type-safe build orchestration
+- **data-transform.coal** (33 lines) - Type-safe data processing pipelines
+
+Run demos:
+```bash
+./smt run examples/showcase/config-validator.coal
+./test/verify-demos.sh  # Verify all showcase demos work
+```
+
+See `examples/showcase/README.md` for detailed descriptions and use cases.
+
 ## Dependencies
 
 - SBCL (Steel Bank Common Lisp)
@@ -149,6 +168,7 @@ The final binary is self-contained with no runtime dependencies.
 ## Feature Documentation
 
 ### Implemented Features
+- **[Showcase Demos Achievement](docs/showcase-demos-achievement.md)** - 6 production-ready demos (19-33 lines) showcasing real-world type-safe scripting use cases - config validation, error handling, build pipelines, data transforms - all verified and HN-ready
 - **[Comprehensive Test Coverage Achievement](docs/comprehensive-test-coverage-achievement.md)** - Production-ready test coverage with 112+ tests across comprehensive, stress, and cross-platform suites - ensuring "smt scripts just work" for HN launch
 - **[Launch-Ready Achievement](docs/launch-ready-achievement.md)** - Show functions (show-int, show-bool) + 5 working launch examples + verification script - Complete HN launch readiness with 11/11 tests passing
 - **[Standard Library I/O Implementation](docs/stdlib-io-implementation.md)** - Core I/O package (`smelter.stdlib.io`) with print, println, and read-line functions - enables batteries-included I/O for clean Coalton scripts
@@ -176,6 +196,7 @@ The final binary is self-contained with no runtime dependencies.
 
 ### Known Limitations
 - **[SBCL Runtime Limitations](docs/sbcl-runtime-limitations.md)** - CLI argument handling limitations inherited from SBCL
+- **Unicode in string literals**: Parser fails with Unicode characters (✓, ✗) in string literals - use ASCII only for now
 - **Integer division**: No `div` function available yet (workaround: use multiplication/subtraction)
 - **Floating point**: No Float type or show-float function (integers only for now)
 - **Advanced show functions**: Only show-int and show-bool available (no show for lists, tuples, custom types)
