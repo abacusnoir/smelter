@@ -2,40 +2,37 @@
 ;;;; Fibonacci Numbers - Demonstrating recursion and optimization
 
 ;; Naive recursive implementation
-(coalton-toplevel
-  (declare fib-naive (Integer -> Integer))
-  (define (fib-naive n)
-    (if (<= n 1)
-        n
-        (+ (fib-naive (- n 1))
-           (fib-naive (- n 2))))))
+(declare fib-naive (Integer -> Integer))
+(define (fib-naive n)
+  (if (<= n 1)
+      n
+      (+ (fib-naive (- n 1))
+         (fib-naive (- n 2)))))
 
 ;; Optimized tail-recursive implementation
-(coalton-toplevel
-  (declare fib-tail (Integer -> Integer -> Integer -> Integer))
-  (define (fib-tail n a b)
-    (if (== n 0)
-        a
-        (fib-tail (- n 1) b (+ a b))))
-  
-  (declare fib-fast (Integer -> Integer))
-  (define (fib-fast n)
-    (fib-tail n 0 1)))
+(declare fib-tail (Integer -> Integer -> Integer -> Integer))
+(define (fib-tail n a b)
+  (if (== n 0)
+      a
+      (fib-tail (- n 1) b (+ a b))))
+
+(declare fib-fast (Integer -> Integer))
+(define (fib-fast n)
+  (fib-tail n 0 1))
 
 ;; Generate fibonacci sequence up to n
-(coalton-toplevel
-  (declare fib-sequence (Integer -> List Integer))
-  (define (fib-sequence n)
-    (if (<= n 0)
-        (list)
-        (if (== n 1)
-            (list 0)
-            (if (== n 2)
-                (list 0 1)
-                (let ((prev (fib-sequence (- n 1))))
-                  (let ((last (head (reverse prev)))
-                        (second-last (head (tail (reverse prev)))))
-                    (append prev (list (+ last second-last))))))))))
+(declare fib-sequence (Integer -> List Integer))
+(define (fib-sequence n)
+  (if (<= n 0)
+      (list)
+      (if (== n 1)
+          (list 0)
+          (if (== n 2)
+              (list 0 1)
+              (let ((prev (fib-sequence (- n 1))))
+                (let ((last (head (reverse prev)))
+                      (second-last (head (tail (reverse prev)))))
+                  (append prev (list (+ last second-last)))))))))
 
 (defun main ()
   "Demonstrate different fibonacci implementations"

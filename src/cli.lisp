@@ -56,7 +56,13 @@
   (format t "  smt run hello.coal~%")
   (format t "  smt eval '(+ 2 3)'~%")
   (format t "  echo '(* 6 7)' | smt repl~%")
-  (format t "  ./script.coal          # With shebang: #!/usr/bin/env smt run~%"))
+  (format t "  ./script.coal          # With shebang: #!/usr/bin/env smt run~%~%")
+  (format t "Script Format (Clean Coalton Syntax):~%")
+  (format t "  #!/usr/bin/env smt run~%")
+  (format t "  (declare add (Integer -> Integer -> Integer))~%")
+  (format t "  (define (add x y) (+ x y))~%~%")
+  (format t "  (define main~%")
+  (format t "    (println (show (add 2 3))))~%"))
 
 ;;; Coalton environment setup
 (defun setup-coalton-environment ()

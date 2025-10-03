@@ -173,7 +173,15 @@ test_eval_missing_arg() {
 }
 
 test_run_hello() {
-    run_test_with_output "Run hello.coal" "$SMT_BINARY run $EXAMPLES_DIR/hello.coal" "Hello from Smelter"
+    run_test_with_output "Run hello.coal" "$SMT_BINARY run $EXAMPLES_DIR/hello.coal" "Hello"
+}
+
+test_clean_syntax_pure_hello() {
+    run_test_with_output "Clean syntax: pure-hello.coal" "$SMT_BINARY run $EXAMPLES_DIR/pure-hello.coal" "Hello"
+}
+
+test_clean_syntax_fibonacci() {
+    run_test_with_output "Clean syntax: fibonacci.coal" "$SMT_BINARY run $EXAMPLES_DIR/fibonacci.coal" "Fibonacci"
 }
 
 test_run_missing_file() {
@@ -248,23 +256,25 @@ test_binary_properties() {
 create_test_files() {
     log_info "Creating additional test files..."
     
-    # Create a simple arithmetic test
+    # Create a simple arithmetic test (clean syntax)
     cat > "$TEMP_DIR/arithmetic.coal" << 'EOF'
-(coalton-toplevel
-  (declare square (Integer -> Integer))
-  (define (square x) (* x x)))
+#!/usr/bin/env smt run
+
+(declare square (Integer -> Integer))
+(define (square x) (* x x))
 
 (defun main ()
   (format t "~A~%" (coalton:coalton (square 8))))
 EOF
     
-    # Create a fibonacci test
+    # Create a fibonacci test (clean syntax)
     cat > "$TEMP_DIR/fibonacci.coal" << 'EOF'
-(coalton-toplevel
-  (declare fib (Integer -> Integer))
-  (define (fib n)
-    (if (<= n 1) n
-        (+ (fib (- n 1)) (fib (- n 2))))))
+#!/usr/bin/env smt run
+
+(declare fib (Integer -> Integer))
+(define (fib n)
+  (if (<= n 1) n
+      (+ (fib (- n 1)) (fib (- n 2)))))
 
 (defun main ()
   (format t "~A~%" (coalton:coalton (fib 10))))
@@ -312,6 +322,8 @@ main() {
     echo
     log_info "Running script execution tests..."
     test_run_hello
+    test_clean_syntax_pure_hello
+    test_clean_syntax_fibonacci
     test_run_missing_file
     test_run_missing_arg
     test_shebang_execution

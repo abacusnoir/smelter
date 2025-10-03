@@ -1,19 +1,19 @@
 #!/usr/bin/env smt run
 ;;; Simple HTTP Demo - Type-safe API scripting with Smelter
 
-(coalton-toplevel
-  (define (show-result resp)
-    (lisp Unit (resp)
-      (cl:format cl:t "Success! Got response with status ~D~%"
-                (smelter/adapters/http::response-status resp))
-      Unit))
 
-  (define (show-error msg)
-    (lisp Unit (msg)
-      (cl:format cl:t "Error: ~A~%" msg)
-      Unit))
+(define (show-result resp)
+  (lisp Unit (resp)
+    (cl:format cl:t "Success! Got response with status ~D~%"
+              (smelter/adapters/http::response-status resp))
+    Unit))
 
-  (define (main)
-    (match (smelter/adapters/http::http-get "https://httpbin.org/get")
-      ((Ok resp) (show-result resp))
-      ((Err msg) (show-error msg)))))
+(define (show-error msg)
+  (lisp Unit (msg)
+    (cl:format cl:t "Error: ~A~%" msg)
+    Unit))
+
+(define (main)
+  (match (smelter/adapters/http::http-get "https://httpbin.org/get")
+    ((Ok resp) (show-result resp))
+    ((Err msg) (show-error msg)))))

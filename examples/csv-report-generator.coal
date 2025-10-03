@@ -1,18 +1,17 @@
 #!/usr/bin/env smt run
 
-(coalton-toplevel
-  (use smelter/csv)
-  (use smelter/adapters/cli)
-  (use smelter/stdlib/io)
+(use smelter/csv)
+(use smelter/adapters/cli)
+(use smelter/stdlib/io)
 
-  (define-type Sale
+(define-type Sale
     (Sale
       (product :: String)
       (units :: Integer)
       (price :: Double-Float)))
 
-  (declare parse-row (List String -> (Optional Sale)))
-  (define (parse-row row)
+(declare parse-row (List String -> (Optional Sale)))
+(define (parse-row row)
     (match row
       ((Cons product (Cons units-str (Cons price-str Nil)))
        (match (string-to-integer units-str)
@@ -23,7 +22,7 @@
          ((None) None)))
       (_ None)))
 
-  (define (main)
+(define (main)
     (let ((specs
             (make-list
               (string-arg "input" "Input CSV file" True)
@@ -41,8 +40,8 @@
            (println "Error parsing arguments.")
            (println (generate-help specs))))))))
 
-  (declare process-sales-file (String -> String -> Unit))
-  (define (process-sales-file input-file output-file)
+(declare process-sales-file (String -> String -> Unit))
+(define (process-sales-file input-file output-file)
     (println (mconcat (make-list "Reading sales data from " input-file "...")))
     (match (read-csv input-file)
       ((Ok (Cons header rows))
@@ -55,8 +54,8 @@
       ((Ok Nil) (println "Error: CSV file is empty or has no header."))
       ((Err e) (println (mconcat (make-list "❌ Failed to read or parse CSV: " (show e)))))))
 
-  (declare generate-summary ((List Sale) -> CSV))
-  (define (generate-summary sales)
+(declare generate-summary ((List Sale) -> CSV))
+(define (generate-summary sales)
     (let* ((products (remove-duplicates (map (fn (s) (cell s product)) sales)))
            (summary-rows
              (map (fn (p)
@@ -68,6 +67,6 @@
                   products)))
       (cons (make-list "Product" "TotalUnitsSold" "TotalRevenue") summary-rows)))
 
-  (declare get-command-args (Unit -> (List String)))
-  (define (get-command-args)
+(declare get-command-args (Unit -> (List String)))
+(define (get-command-args)
     (lisp (List String) () (cl:rest sb-ext:*posix-argv*))))
