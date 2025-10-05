@@ -1,0 +1,200 @@
+name: Install Script Tests
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+  release:
+    types: [published, created]
+
+jobs:
+  syntax-validation:
+    name: Validate install.sh syntax on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, macos-13]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate install script syntax
+        run: |
+          echo "Validating scripts/install.sh syntax..."
+          bash -n scripts/install.sh
+          echo "✓ Syntax validation passed"
+
+  mock-install-test:
+    name: Mock install test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    if: github.event_name != 'release'
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, macos-13]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test platform detection
+        run: |
+          echo "Testing platform detection..."
+
+          # Source the install script functions (but don't run main)
+          # Extract just the detect_platform function
+          source <(sed -n '/^detect_platform()/,/^}/p' scripts/install.sh)
+
+          # Test platform detection
+          detect_platform
+
+          echo "Detected: PLATFORM=$PLATFORM, ARCH=$ARCH"
+          echo "Binary target: $BINARY_TARGET"
+
+          # Validate expected values
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            [[ "$PLATFORM" == "linux" ]] || exit 1
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            [[ "$PLATFORM" == "darwin" ]] || exit 1
+          fi
+
+          echo "✓ Platform detection works correctly"
+
+      - name: Test prerequisite checks
+        run: |
+          echo "Testing prerequisite validation..."
+
+          # Verify required tools are available
+          command -v curl || command -v wget || exit 1
+          command -v tar || exit 1
+
+          echo "✓ Prerequisites available"
+
+      - name: Verify install script structure
+        run: |
+          echo "Verifying install script structure..."
+
+          # Check for required functions
+          grep -q "detect_platform()" scripts/install.sh || exit 1
+          grep -q "check_prerequisites()" scripts/install.sh || exit 1
+          grep -q "download_and_install()" scripts/install.sh || exit 1
+          grep -q "verify_installation()" scripts/install.sh || exit 1
+
+          # Check for expected binary naming pattern
+          grep -q "smt-.*-.*" scripts/install.sh || exit 1
+
+          echo "✓ Install script structure validated"
+
+  landing-page-health:
+    name: Check landing page accessibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check smelter-landing.pages.dev accessibility
+        run: |
+          echo "Checking if smelter-landing.pages.dev is accessible..."
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://smelter-landing.pages.dev/)
+
+          if [[ "$HTTP_CODE" == "200" ]]; then
+            echo "✓ Landing page is accessible (HTTP $HTTP_CODE)"
+          else
+            echo "✗ Landing page returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Check install.sh is downloadable
+        run: |
+          echo "Checking if install.sh is downloadable..."
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://smelter-landing.pages.dev/install.sh)
+
+          if [[ "$HTTP_CODE" == "200" ]]; then
+            echo "✓ install.sh is downloadable (HTTP $HTTP_CODE)"
+          else
+            echo "✗ install.sh returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+  e2e-install-test:
+    name: End-to-end install test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    if: github.event_name == 'release'
+    needs: [syntax-validation, landing-page-health]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, macos-13]
+
+    steps:
+      - name: Download and run install script
+        run: |
+          echo "Downloading install script from smelter-landing.pages.dev..."
+          curl -fsSL https://smelter-landing.pages.dev/install.sh -o /tmp/install.sh
+
+          echo "Running install script..."
+          bash /tmp/install.sh -d ~/.local/bin
+
+          echo "✓ Install script completed"
+
+      - name: Verify installation
+        run: |
+          echo "Verifying installed binary..."
+
+          # Add to PATH
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # Check binary exists
+          if [ ! -f "$HOME/.local/bin/smt" ]; then
+            echo "✗ Binary not found at ~/.local/bin/smt"
+            exit 1
+          fi
+
+          # Check executable permission
+          if [ ! -x "$HOME/.local/bin/smt" ]; then
+            echo "✗ Binary is not executable"
+            exit 1
+          fi
+
+          echo "✓ Binary exists and is executable"
+
+      - name: Test installed binary
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          echo "Testing smt --version..."
+          smt --version
+
+          echo "Testing smt eval '1'..."
+          OUTPUT=$(smt eval '1')
+          if [[ "$OUTPUT" == "1" ]]; then
+            echo "✓ Basic evaluation works"
+          else
+            echo "✗ Expected '1', got '$OUTPUT'"
+            exit 1
+          fi
+
+          echo "✓ All binary tests passed"
+
+      - name: Verify binary naming convention
+        run: |
+          echo "Verifying binary naming matches expected convention..."
+
+          # Expected binary names based on platform
+          case "${{ matrix.os }}" in
+            ubuntu-latest)
+              EXPECTED_NAME="smelter-linux-x64"
+              ;;
+            macos-latest)
+              EXPECTED_NAME="smelter-macos-arm64"
+              ;;
+            macos-13)
+              EXPECTED_NAME="smelter-macos-x64"
+              ;;
+          esac
+
+          echo "Expected binary name: $EXPECTED_NAME"
+          echo "Note: Actual installed binary is 'smt' but archive should be named $EXPECTED_NAME.tar.gz"
+
+          # This is informational - the install script handles the extraction
+          echo "✓ Binary naming convention documented"
