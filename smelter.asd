@@ -40,7 +40,7 @@
                    ;; Additional libraries
                    (:file "smelter-http")
                    (:file "smelter-json")
-                   ;;(:file "smelter-csv")       ; Disabled - file ignored by .gitignore (smelter-* pattern)
+                   (:file "smelter-csv")
                    ;;(:file "smelter-datetime")  ; Disabled - has compilation errors
                    ;;(:file "smelter-test")      ; Disabled - depends on datetime
                    ))
