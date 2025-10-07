@@ -43,7 +43,7 @@ deps:
 	@echo "Installing Quicklisp and Coalton..."
 	@if [ ! -d ~/quicklisp ]; then \
 		curl -O https://beta.quicklisp.org/quicklisp.lisp; \
-		$(SBCL) --load quicklisp.lisp --eval "(quicklisp-quickstart:install)" --eval "(ql:add-to-init-file :own-filename nil)" --quit; \
+		$(SBCL) --load quicklisp.lisp --eval "(quicklisp-quickstart:install)" --quit; \
 		rm -f quicklisp.lisp; \
 	fi
 	@$(SBCL) --eval '(load "~/quicklisp/setup.lisp")' --eval "(ql:quickload :coalton)" --quit
