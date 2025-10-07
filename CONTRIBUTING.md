@@ -7,7 +7,7 @@ We love contributions! Here's how to help make Smelter even better.
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/yourusername/smelter.git
+   git clone https://github.com/your-username/smelter.git
    cd smelter
    ```
 3. **Create a feature branch**:
@@ -32,15 +32,20 @@ We love contributions! Here's how to help make Smelter even better.
 
 ### Running Tests
 ```bash
-make test                    # Run all tests
-make dev                     # Quick development cycle (clean + build + test)
-./test/smoke-test.sh         # Run smoke tests
+make test                       # Run basic smoke tests
+make test-comprehensive         # Run comprehensive test suite (74 tests)
+make test-all                   # Run ALL test suites (112+ tests)
+make dev                        # Quick development cycle (clean + build + test)
+./test/smoke-test.sh            # Run smoke tests
+./test/comprehensive-test-suite.sh  # Run comprehensive tests
+./test/stress-test.sh           # Run stress tests
+./test/cross-platform-test.sh   # Run cross-platform tests
 ```
 
 ### Performance Testing
 ```bash
-./smt-minimal eval '(+ 1 2)'  # Test startup time
-make compress                # Test UPX compression
+./smt eval '(+ 1 2)'         # Test startup time
+make compress                 # Test with UPX compression (optional)
 ```
 
 ## 📝 Code Style
@@ -55,14 +60,20 @@ make compress                # Test UPX compression
 All changes must include appropriate tests:
 
 - **Unit tests**: Test individual functions
-- **Integration tests**: Test feature combinations  
+- **Integration tests**: Test feature combinations
 - **Smoke tests**: Test basic functionality
-- **Performance tests**: Verify startup time claims
+- **Performance tests**: Verify startup time and memory usage
+- **Stress tests**: Verify behavior under load
+- **Cross-platform tests**: Ensure compatibility across platforms
 
 Add test cases in the appropriate location:
-- `test/smoke-test.sh` - Basic functionality
-- `test/regression/` - Regression test suite
+- `test/smoke-test.sh` - Basic functionality tests
+- `test/comprehensive-test-suite.sh` - Comprehensive coverage (74 tests)
+- `test/stress-test.sh` - Performance and stress tests (14 tests)
+- `test/cross-platform-test.sh` - Platform compatibility (24 tests)
+- `test/eval-regression.sh` - Pattern matching validation
 - `examples/` - Example scripts that serve as integration tests
+- `examples/showcase/` - Production-ready demo scripts
 
 ## 🐛 Bug Reports
 
@@ -82,10 +93,12 @@ We welcome feature suggestions! Please:
 
 ## 📦 Release Process
 
-1. Features are merged to `master`
-2. Version tags trigger automated releases
-3. Binaries are built and published automatically
-4. Homebrew formula is updated
+1. Features are merged to `master` via Pull Requests
+2. CI runs comprehensive test suite (112+ tests)
+3. Version tags trigger automated release workflow
+4. Binaries are built for all platforms (macOS ARM64/x64, Linux x64)
+5. Release artifacts are published to GitHub Releases
+6. Install script is tested on all platforms
 
 ## 📜 License
 
