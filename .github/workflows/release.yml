@@ -125,8 +125,22 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Release version: $VERSION"
 
+      - name: Check if release exists
+        id: check_release
+        run: |
+          if gh release view "${{ steps.release_info.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Release ${{ steps.release_info.outputs.version }} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Release ${{ steps.release_info.outputs.version }} does not exist, will create"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create Release
         id: create_release
+        if: steps.check_release.outputs.exists == 'false'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -171,31 +185,25 @@ jobs:
 
       - name: Upload Release Assets
         run: |
+          VERSION="${{ steps.release_info.outputs.version }}"
+
+          # Upload all tarballs
           for file in dist/smt-*.tar.gz; do
-            echo "Uploading $file..."
-            curl \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: application/octet-stream" \
-              --data-binary @"$file" \
-              "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)"
+            echo "Uploading $file to release $VERSION..."
+            gh release upload "$VERSION" "$file" --clobber
           done
 
+          # Upload all checksums
           for file in dist/smt-*.sha256; do
-            echo "Uploading $file..."
-            curl \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: text/plain" \
-              --data-binary @"$file" \
-              "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)"
+            echo "Uploading $file to release $VERSION..."
+            gh release upload "$VERSION" "$file" --clobber
           done
 
-      - name: Upload install script
-        run: |
-          curl \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: application/x-sh" \
-            --data-binary @scripts/install.sh \
-            "${{ steps.create_release.outputs.upload_url }}?name=install.sh"
+          # Upload install script
+          echo "Uploading install script to release $VERSION..."
+          gh release upload "$VERSION" scripts/install.sh --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test-release:
     name: Test Release Installation
