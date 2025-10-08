@@ -187,21 +187,36 @@ jobs:
         run: |
           VERSION="${{ steps.release_info.outputs.version }}"
 
+          # Verify install script exists
+          if [ ! -f scripts/install.sh ]; then
+            echo "Error: scripts/install.sh not found!"
+            ls -la scripts/
+            exit 1
+          fi
+
           # Upload all tarballs
           for file in dist/smt-*.tar.gz; do
-            echo "Uploading $file to release $VERSION..."
-            gh release upload "$VERSION" "$file" --clobber
+            if [ -f "$file" ]; then
+              echo "Uploading $file to release $VERSION..."
+              gh release upload "$VERSION" "$file" --clobber
+            fi
           done
 
           # Upload all checksums
           for file in dist/smt-*.sha256; do
-            echo "Uploading $file to release $VERSION..."
-            gh release upload "$VERSION" "$file" --clobber
+            if [ -f "$file" ]; then
+              echo "Uploading $file to release $VERSION..."
+              gh release upload "$VERSION" "$file" --clobber
+            fi
           done
 
           # Upload install script
           echo "Uploading install script to release $VERSION..."
           gh release upload "$VERSION" scripts/install.sh --clobber
+
+          # List uploaded assets
+          echo "Release assets:"
+          gh release view "$VERSION" --json assets --jq '.assets[].name'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
