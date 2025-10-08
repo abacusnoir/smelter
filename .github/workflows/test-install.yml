@@ -83,8 +83,8 @@ jobs:
           grep -q "download_and_install()" scripts/install.sh || exit 1
           grep -q "verify_installation()" scripts/install.sh || exit 1
 
-          # Check for expected binary naming pattern
-          grep -q "smt-.*-.*" scripts/install.sh || exit 1
+          # Check for expected binary naming pattern (BINARY_NAME-PLATFORM-ARCH)
+          grep -q 'BINARY_TARGET="${BINARY_NAME}-${PLATFORM}-${ARCH}"' scripts/install.sh || exit 1
 
           echo "✓ Install script structure validated"
 
