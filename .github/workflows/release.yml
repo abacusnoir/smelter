@@ -207,11 +207,34 @@ jobs:
         os: [ubuntu-latest, macos-latest]
 
     steps:
-      - name: Test installation
+      - name: Get release version
+        id: version
         run: |
-          # Test the install script
-          curl -L https://github.com/${{ github.repository }}/releases/latest/download/install.sh | bash
+          if [[ ${{ github.event_name }} == 'workflow_dispatch' ]]; then
+            VERSION=${{ github.event.inputs.version }}
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Testing release version: $VERSION"
+
+      - name: Wait for release to be available
+        run: |
+          echo "Waiting 30 seconds for GitHub to process release assets..."
+          sleep 30
+
+      - name: Test installation from specific release
+        run: |
+          # Download install script from the specific release
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Downloading install script from release $VERSION..."
+
+          curl -fsSL "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh
+
+          # Run the install script
+          bash /tmp/install.sh
 
           # Verify it works
+          export PATH="$HOME/.local/bin:$PATH"
           smt --version
           smt eval '1'
