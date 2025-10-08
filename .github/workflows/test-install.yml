@@ -42,9 +42,11 @@ jobs:
         run: |
           echo "Testing platform detection..."
 
-          # Source the install script functions (but don't run main)
-          # Extract just the detect_platform function
-          source <(sed -n '/^detect_platform()/,/^}/p' scripts/install.sh)
+          # Extract required functions and configuration to temp file
+          sed -n '/^RED=/p; /^GREEN=/p; /^YELLOW=/p; /^BLUE=/p; /^NC=/p; /^BINARY_NAME=/p; /^log_info()/,/^}/p; /^log_error()/,/^}/p; /^detect_platform()/,/^}/p' scripts/install.sh > /tmp/detect-funcs.sh
+
+          # Source the functions
+          . /tmp/detect-funcs.sh
 
           # Test platform detection
           detect_platform
