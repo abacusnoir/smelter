@@ -85,12 +85,25 @@ jobs:
           tar -czf ${BINARY_NAME}.tar.gz ${BINARY_NAME}
           shasum -a 256 ${BINARY_NAME}.tar.gz > ${BINARY_NAME}.tar.gz.sha256
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: smt-${{ matrix.platform }}
-          path: dist/smt-${{ matrix.platform }}*
-          retention-days: 1
+      - name: Get release version
+        id: version
+        run: |
+          if [[ ${{ github.event_name }} == 'workflow_dispatch' ]]; then
+            VERSION=${{ github.event.inputs.version }}
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload to release directly (skip artifacts)
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Upload tarball and checksum directly to release
+          cd dist
+          gh release upload "$VERSION" *.tar.gz *.sha256 --clobber || echo "Release upload will be retried by release job"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     name: Create Release
@@ -102,17 +115,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist/
-
-      - name: Prepare release assets
-        run: |
-          # Flatten artifact directories
-          find dist/ -name 'smt-*' -type f -exec mv {} dist/ \;
-          ls -la dist/
 
       - name: Get release info
         id: release_info
@@ -183,7 +185,7 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Assets
+      - name: Upload install script to release
         run: |
           VERSION="${{ steps.release_info.outputs.version }}"
 
@@ -194,28 +196,12 @@ jobs:
             exit 1
           fi
 
-          # Upload all tarballs
-          for file in dist/smt-*.tar.gz; do
-            if [ -f "$file" ]; then
-              echo "Uploading $file to release $VERSION..."
-              gh release upload "$VERSION" "$file" --clobber
-            fi
-          done
-
-          # Upload all checksums
-          for file in dist/smt-*.sha256; do
-            if [ -f "$file" ]; then
-              echo "Uploading $file to release $VERSION..."
-              gh release upload "$VERSION" "$file" --clobber
-            fi
-          done
-
-          # Upload install script
+          # Upload install script (binaries already uploaded by build jobs)
           echo "Uploading install script to release $VERSION..."
           gh release upload "$VERSION" scripts/install.sh --clobber
 
-          # List uploaded assets
-          echo "Release assets:"
+          # List all uploaded assets
+          echo "All release assets:"
           gh release view "$VERSION" --json assets --jq '.assets[].name'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
