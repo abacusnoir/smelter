@@ -46,7 +46,15 @@ deps:
 		$(SBCL) --load quicklisp.lisp --eval "(quicklisp-quickstart:install)" --quit; \
 		rm -f quicklisp.lisp; \
 	fi
-	@$(SBCL) --eval '(load "~/quicklisp/setup.lisp")' --eval "(ql:quickload :coalton)" --quit
+	@echo "Loading all dependencies (coalton, yason, drakma, flexi-streams, split-sequence, cl-csv)..."
+	@$(SBCL) --eval '(load "~/quicklisp/setup.lisp")' \
+		--eval "(ql:quickload :coalton)" \
+		--eval "(ql:quickload :yason)" \
+		--eval "(ql:quickload :drakma)" \
+		--eval "(ql:quickload :flexi-streams)" \
+		--eval "(ql:quickload :split-sequence)" \
+		--eval "(ql:quickload :cl-csv)" \
+		--quit
 	@echo "Dependencies ready."
 
 # Build the smt executable
