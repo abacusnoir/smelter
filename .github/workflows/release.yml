@@ -96,6 +96,8 @@ jobs:
     name: Build for ${{ matrix.platform }}
     needs: create-release
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
 
     strategy:
       matrix:
