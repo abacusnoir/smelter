@@ -83,14 +83,16 @@
       content)))
 
 (defun strip-shebang (content)
-  "Remove shebang line if present"
-  (if (and (> (length content) 2)
-           (string= (subseq content 0 2) "#!"))
-      (let ((newline-pos (position #\Newline content)))
-        (if newline-pos
-            (subseq content (1+ newline-pos))
-            ""))
-      content))
+  "Remove shebang line if present (handles leading whitespace)"
+  (let* ((trimmed (string-left-trim '(#\Space #\Tab) content))
+         (has-shebang (and (>= (length trimmed) 2)
+                          (string= (subseq trimmed 0 2) "#!"))))
+    (if has-shebang
+        (let ((newline-pos (position #\Newline trimmed)))
+          (if newline-pos
+              (subseq trimmed (1+ newline-pos))
+              ""))
+        content)))
 
 (defun wrap-coalton-script (content)
   "Wrap user script content in proper Coalton environment"
