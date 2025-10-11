@@ -7,7 +7,7 @@ set -e
 # Configuration
 REPO_OWNER="abacusnoir"  # My Github organization
 REPO_NAME="smelter"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="smt"
 
 # Colors for output
@@ -85,12 +85,7 @@ check_prerequisites() {
         log_error "tar not found. Please install tar."
         exit 1
     fi
-    
-    # Check write permissions for install directory
-    if [ ! -w "$INSTALL_DIR" ] && [ "$EUID" -ne 0 ]; then
-        log_warning "No write permission to $INSTALL_DIR. You may need to run with sudo."
-    fi
-    
+
     log_success "Prerequisites check passed"
 }
 
@@ -165,15 +160,15 @@ download_and_install() {
     
     # Make binary executable
     chmod +x "$binary_path"
-    
+
     # Install the binary
     log_info "Installing to $INSTALL_DIR..."
-    if [ -w "$INSTALL_DIR" ] || [ "$EUID" -eq 0 ]; then
-        cp "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
-    else
-        log_info "Requesting sudo permissions for installation..."
-        sudo cp "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
-    fi
+
+    # Create install directory if it doesn't exist
+    mkdir -p "$INSTALL_DIR"
+
+    # Copy binary (no sudo needed for home directory)
+    cp "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
     
     # Cleanup
     rm -rf "$temp_dir"
@@ -184,16 +179,29 @@ download_and_install() {
 # Verify installation
 verify_installation() {
     log_info "Verifying installation..."
-    
+
     if ! command -v "$BINARY_NAME" >/dev/null 2>&1; then
-        log_error "Installation verification failed. $BINARY_NAME not found in PATH."
-        log_info "Try adding $INSTALL_DIR to your PATH:"
-        log_info "  export PATH=\"$INSTALL_DIR:\$PATH\""
-        log_info "Or restart your shell/terminal."
-        log_info "You can also run directly: $INSTALL_DIR/$BINARY_NAME"
-        exit 1
+        log_warning "$BINARY_NAME not found in PATH."
+        echo
+        log_info "Add $INSTALL_DIR to your PATH:"
+        echo
+
+        # Detect shell and provide appropriate instructions
+        if [ -n "$BASH_VERSION" ]; then
+            echo "  echo 'export PATH=\"$INSTALL_DIR:\$PATH\"' >> ~/.bashrc"
+            echo "  source ~/.bashrc"
+        elif [ -n "$ZSH_VERSION" ]; then
+            echo "  echo 'export PATH=\"$INSTALL_DIR:\$PATH\"' >> ~/.zshrc"
+            echo "  source ~/.zshrc"
+        else
+            echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+        fi
+
+        echo
+        log_info "Or run directly: $INSTALL_DIR/$BINARY_NAME"
+        return 0
     fi
-    
+
     local installed_version=$($BINARY_NAME --version 2>/dev/null | head -1 || echo "unknown")
     log_success "Installation verified: $installed_version"
 }
@@ -258,12 +266,13 @@ install_local() {
     fi
 
     log_info "Installing local binary to $INSTALL_DIR/$BINARY_NAME..."
-    if [ -w "$INSTALL_DIR" ] || [ "$EUID" -eq 0 ]; then
-        cp "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
-    else
-        log_info "Requesting sudo permissions for installation..."
-        sudo cp "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
-    fi
+
+    # Create install directory if it doesn't exist
+    mkdir -p "$INSTALL_DIR"
+
+    # Copy binary (no sudo needed for home directory)
+    cp "$binary_path" "$INSTALL_DIR/$BINARY_NAME"
+    chmod +x "$INSTALL_DIR/$BINARY_NAME"
 
     log_success "Local installation complete"
     verify_installation
@@ -272,21 +281,17 @@ install_local() {
 # Uninstall function
 uninstall() {
     log_info "Uninstalling Smelter..."
-    
+
     local binary_path="$INSTALL_DIR/$BINARY_NAME"
-    
+
     if [ ! -f "$binary_path" ]; then
         log_warning "Smelter not found at $binary_path"
         return 0
     fi
-    
-    if [ -w "$INSTALL_DIR" ] || [ "$EUID" -eq 0 ]; then
-        rm -f "$binary_path"
-    else
-        log_info "Requesting sudo permissions for uninstallation..."
-        sudo rm -f "$binary_path"
-    fi
-    
+
+    # Remove binary (no sudo needed for home directory)
+    rm -f "$binary_path"
+
     log_success "Smelter has been uninstalled"
 }
 
