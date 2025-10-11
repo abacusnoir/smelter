@@ -69,6 +69,8 @@ test: $(TARGET)
 	@./test/smoke-test.sh
 	@echo "Running eval regression tests..."
 	@./test/eval-regression.sh
+	@echo "Running clean syntax tests..."
+	@./test/test-clean-syntax.sh
 
 # Run eval regression tests
 test-eval: $(TARGET)
@@ -104,6 +106,9 @@ test-all: $(TARGET)
 	@echo ""
 	@echo "=== Eval Regression Tests ==="
 	@./test/eval-regression.sh
+	@echo ""
+	@echo "=== Clean Syntax Tests ==="
+	@./test/test-clean-syntax.sh
 	@echo ""
 	@echo "=== JSON Regression Tests ==="
 	@./test/json-regression.sh
