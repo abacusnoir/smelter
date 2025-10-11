@@ -57,7 +57,9 @@ releases/
 *.dmg
 dist/
 smelter
-smelter-*
+# Ignore release binaries but NOT source files in src/
+/smelter-*
+release*/smelter-*
 
 # Test artifacts
 test/temp/

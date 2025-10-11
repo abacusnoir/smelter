@@ -209,6 +209,7 @@
       
       ;; Add smelter standard library imports
       (format out "  ;; Import Smelter standard libraries~%")
+      (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.clean :coalton-user))~%")
       (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.io :coalton-user))~%")
       (format out "  (cl:ignore-errors (cl:use-package :smelter.stdlib.system :coalton-user))~%")
       ;; Import adapters

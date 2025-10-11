@@ -20,11 +20,19 @@
 (unless (find-package :coalton)
   (error "Failed to load Coalton package"))
 
-;; Ensure coalton-user package exists (it should be created by Coalton)
-
 ;; Load the entire Smelter system and its dependencies via Quicklisp/ASDF
 (format t "~&Loading Smelter system...~%")
 (ql:quickload :smelter :silent nil)
+
+;; Setup coalton-user package with clean syntax imports AFTER smelter loads
+(unless (find-package :coalton-user)
+  (defpackage #:coalton-user
+    (:use #:coalton #:coalton-prelude)))
+
+;; Import clean syntax functions into coalton-user
+(import '(smelter.stdlib.clean:println
+          smelter.stdlib.clean:show)
+        :coalton-user)
 
 ;; Return to cl-user package for saving
 (in-package #:cl-user)

@@ -35,6 +35,8 @@
                    (:file "smelter-system")
                    (:file "smelter-file")
                    (:file "io")
+                   ;; Clean syntax support (user-friendly aliases)
+                   (:file "smelter-clean-syntax")
                    ;; JSON support
                    (:file "json")
                    ;; Additional libraries
