@@ -212,30 +212,9 @@ This approach gives you:
 **Build Automation** - Replace complex Makefiles with typed workflows
 **API Integration** - HTTP clients with JSON parsing built-in
 
-## 🗺️ Roadmap
-
-- [x] **v0.1** - Core CLI, REPL, type system, clean syntax, 112+ tests ← *You are here*
-- [ ] **v0.2** - Enhanced stdlib (CSV adapter, more I/O functions)
-- [ ] **v0.3** - Performance optimization (target: <35ms startup)
-- [ ] **v0.4** - Package manager and dependency management
-- [ ] **v0.5** - IDE support (LSP server)
-- [ ] **v1.0** - Production ready with full stdlib
-
-**Current capabilities:** HTTP, JSON, File I/O, Process execution, clean Coalton syntax, comprehensive test coverage
-
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-### Quick Contribution Guide
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and add tests
-4. Run the test suite: `make test-all`
-5. Commit your changes: `git commit -m 'Add amazing feature'`
-6. Push to the branch: `git push origin feature/amazing-feature`
-7. Open a Pull Request
+Contributions welcome! Fork the repo, make your changes with tests, run `make test-all`, and open a pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## 📄 License
 
@@ -269,6 +248,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Questions?** Open an [issue](https://github.com/abacusnoir/smelter/issues) or start a [discussion](https://github.com/abacusnoir/smelter/discussions)!
-
-**Want to stay updated?** Watch this repo and follow [@agambrahma](https://twitter.com/agambrahma) for updates.
+**Questions?** Open an [issue](https://github.com/abacusnoir/smelter/issues) or start a [discussion](https://github.com/abacusnoir/smelter/discussions).
