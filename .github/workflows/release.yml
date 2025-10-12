@@ -240,3 +240,40 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           smt --version
           smt eval '1'
+
+  test-homebrew-installation:
+    name: Test Homebrew Installation
+    needs: [create-release, upload-install-script]
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Wait for release assets to propagate
+        run: |
+          echo "Waiting 60 seconds for GitHub release assets to propagate..."
+          sleep 60
+
+      - name: Tap and install via Homebrew
+        run: |
+          brew tap abacusnoir/smelter
+          brew install smelter
+
+      - name: Test Homebrew installation
+        run: |
+          # Test binary works
+          smt --version
+          smt eval '(+ 2 3)'
+
+          # Verify version matches release
+          VERSION="${{ needs.create-release.outputs.version }}"
+          echo "Expected version: ${VERSION#v}"
+          smt --version
+
+      - name: Cleanup
+        if: always()
+        run: |
+          brew uninstall smelter || true
+          brew untap abacusnoir/smelter || true
