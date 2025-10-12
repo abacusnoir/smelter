@@ -246,6 +246,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Competitive startup** - 51.6% faster than initial release (88ms → 43ms)
 - **Optimized size** - 9.3MB optimized binary (50% smaller than v0.1.0-alpha)
 
----
-
-**Questions?** Open an [issue](https://github.com/abacusnoir/smelter/issues) or start a [discussion](https://github.com/abacusnoir/smelter/discussions).
