@@ -15,7 +15,13 @@ for demo in examples/showcase/*.coal; do
     echo "Testing: $(basename "$demo")"
 
     # Check it runs (no timeout on macOS, rely on script finishing quickly)
-    if ./smt run "$demo" > /tmp/demo-output.txt 2>&1; then
+    # Use 'smt' from PATH (for CI) or './smt' (for local dev)
+    SMT_CMD="smt"
+    if [ ! -x "$(command -v smt)" ] && [ -x "./smt" ]; then
+        SMT_CMD="./smt"
+    fi
+
+    if $SMT_CMD run "$demo" > /tmp/demo-output.txt 2>&1; then
         echo "  ✓ Runs successfully"
 
         # Check it's under 50 lines
