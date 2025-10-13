@@ -231,7 +231,15 @@ jobs:
           VERSION="${{ needs.create-release.outputs.version }}"
           echo "Downloading install script from release $VERSION..."
 
-          curl -fsSL "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh
+          # Retry download up to 5 times with exponential backoff
+          for i in 1 2 3 4 5; do
+            if curl -fsSL "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh; then
+              echo "✓ Downloaded install script"
+              break
+            fi
+            echo "Attempt $i failed, waiting $((i * 10))s..."
+            sleep $((i * 10))
+          done
 
           # Run the install script
           bash /tmp/install.sh
