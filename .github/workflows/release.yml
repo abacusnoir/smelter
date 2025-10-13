@@ -273,3 +273,33 @@ jobs:
         run: |
           brew uninstall smelter || true
           brew untap abacusnoir/smelter || true
+
+  test-showcase-examples:
+    name: Test Showcase Examples
+    needs: [create-release, upload-install-script]
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for release assets to propagate
+        run: |
+          echo "Waiting 30 seconds for GitHub release assets to propagate..."
+          sleep 30
+
+      - name: Install via install script
+        run: |
+          VERSION="${{ needs.create-release.outputs.version }}"
+          curl -fsSL "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh
+          bash /tmp/install.sh
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify all showcase examples work
+        run: |
+          ./test/verify-demos.sh
