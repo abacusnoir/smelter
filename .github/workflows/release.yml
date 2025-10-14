@@ -227,19 +227,33 @@ jobs:
 
       - name: Test installation from specific release
         run: |
+          set -e
+
           # Download install script from the specific release
           VERSION="${{ needs.create-release.outputs.version }}"
           echo "Downloading install script from release $VERSION..."
 
-          # Retry download up to 5 times with exponential backoff
+          CURL_OPTS=(--fail --silent --show-error --location --retry 5 --retry-delay 10 --retry-all-errors --connect-timeout 10)
+          if [ -n "$GITHUB_TOKEN" ]; then
+            CURL_OPTS+=(-H "Authorization: token $GITHUB_TOKEN")
+          fi
+
+          DOWNLOAD_SUCCESS=0
           for i in 1 2 3 4 5; do
-            if curl -fsSL "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh; then
+            rm -f /tmp/install.sh
+            if curl "${CURL_OPTS[@]}" "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh; then
               echo "✓ Downloaded install script"
+              DOWNLOAD_SUCCESS=1
               break
             fi
             echo "Attempt $i failed, waiting $((i * 10))s..."
             sleep $((i * 10))
           done
+
+          if [ "$DOWNLOAD_SUCCESS" -ne 1 ]; then
+            echo "Failed to download install script after multiple attempts."
+            exit 1
+          fi
 
           # Run the install script
           bash /tmp/install.sh
@@ -309,17 +323,31 @@ jobs:
       - name: Install smelter (Linux via install script)
         if: runner.os == 'Linux'
         run: |
+          set -e
+
           VERSION="${{ needs.create-release.outputs.version }}"
 
-          # Retry install script download up to 3 times with exponential backoff
+          CURL_OPTS=(--fail --silent --show-error --location --retry 5 --retry-delay 10 --retry-all-errors --connect-timeout 10)
+          if [ -n "$GITHUB_TOKEN" ]; then
+            CURL_OPTS+=(-H "Authorization: token $GITHUB_TOKEN")
+          fi
+
+          DOWNLOAD_SUCCESS=0
           for i in 1 2 3; do
-            if curl -fsSL "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh; then
+            rm -f /tmp/install.sh
+            if curl "${CURL_OPTS[@]}" "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh; then
               echo "✓ Downloaded install script"
+              DOWNLOAD_SUCCESS=1
               break
             fi
             echo "Attempt $i failed, waiting..."
             sleep $((i * 10))
           done
+
+          if [ "$DOWNLOAD_SUCCESS" -ne 1 ]; then
+            echo "Failed to download install script after multiple attempts."
+            exit 1
+          fi
 
           bash /tmp/install.sh
           export PATH="$HOME/.local/bin:$PATH"
