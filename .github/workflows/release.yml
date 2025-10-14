@@ -300,7 +300,14 @@ jobs:
           echo "Waiting 60 seconds for GitHub release assets to propagate..."
           sleep 60
 
-      - name: Install via install script
+      - name: Install smelter (macOS via Homebrew)
+        if: runner.os == 'macOS'
+        run: |
+          brew tap abacusnoir/smelter
+          brew install smelter
+
+      - name: Install smelter (Linux via install script)
+        if: runner.os == 'Linux'
         run: |
           VERSION="${{ needs.create-release.outputs.version }}"
 
