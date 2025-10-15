@@ -236,8 +236,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 | **Startup Time** | **~43ms** | ~29ms | ~62ms | ~35ms |
 | **Binary Size** | **9.3MB** | 45MB* | 35MB* | 75MB* |
 | **Type Safety** | **✅ Yes** | ❌ No | ❌ No | ❌ No |
-| **Zero Deps** | **✅ Yes** | ❌ No | ❌ No | ❌ No |
-| **Test Coverage** | **112+ tests** | Variable | Variable | Variable |
 
 *Runtime size, not including libraries
 
