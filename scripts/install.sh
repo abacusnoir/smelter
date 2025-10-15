@@ -10,6 +10,17 @@ REPO_NAME="smelter"
 INSTALL_DIR="$HOME/.local/bin"
 BINARY_NAME="smt"
 
+HTTP_RETRIES=${HTTP_RETRIES:-5}
+HTTP_RETRY_DELAY=${HTTP_RETRY_DELAY:-5}
+HTTP_CLIENT=""
+
+AUTH_HEADER=""
+if [ -n "$GITHUB_TOKEN" ]; then
+    AUTH_HEADER="Authorization: token $GITHUB_TOKEN"
+elif [ -n "$GH_TOKEN" ]; then
+    AUTH_HEADER="Authorization: token $GH_TOKEN"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -32,6 +43,48 @@ log_error() {
 
 log_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+# HTTP helpers
+http_request() {
+    local url="$1"
+
+    if [ "$HTTP_CLIENT" = "curl" ]; then
+        local args=(--fail --silent --show-error --location --retry "$HTTP_RETRIES" --retry-delay "$HTTP_RETRY_DELAY" --retry-all-errors --connect-timeout 10)
+        if [ -n "$AUTH_HEADER" ]; then
+            args+=(-H "$AUTH_HEADER")
+        fi
+        curl "${args[@]}" "$url"
+    elif [ "$HTTP_CLIENT" = "wget" ]; then
+        local args=(--tries="$HTTP_RETRIES" --waitretry="$HTTP_RETRY_DELAY" --retry-connrefused --quiet)
+        if [ -n "$AUTH_HEADER" ]; then
+            args+=(--header="$AUTH_HEADER")
+        fi
+        wget "${args[@]}" -O - "$url"
+    else
+        return 1
+    fi
+}
+
+http_download() {
+    local url="$1"
+    local output="$2"
+
+    if [ "$HTTP_CLIENT" = "curl" ]; then
+        local args=(--fail --silent --show-error --location --retry "$HTTP_RETRIES" --retry-delay "$HTTP_RETRY_DELAY" --retry-all-errors --connect-timeout 10)
+        if [ -n "$AUTH_HEADER" ]; then
+            args+=(-H "$AUTH_HEADER")
+        fi
+        curl "${args[@]}" -o "$output" "$url"
+    elif [ "$HTTP_CLIENT" = "wget" ]; then
+        local args=(--tries="$HTTP_RETRIES" --waitretry="$HTTP_RETRY_DELAY" --retry-connrefused --quiet)
+        if [ -n "$AUTH_HEADER" ]; then
+            args+=(--header="$AUTH_HEADER")
+        fi
+        wget "${args[@]}" -O "$output" "$url"
+    else
+        return 1
+    fi
 }
 
 # Detect platform and architecture
@@ -75,7 +128,11 @@ check_prerequisites() {
     log_info "Checking prerequisites..."
     
     # Check if curl or wget is available
-    if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+    if command -v curl >/dev/null 2>&1; then
+        HTTP_CLIENT="curl"
+    elif command -v wget >/dev/null 2>&1; then
+        HTTP_CLIENT="wget"
+    else
         log_error "Neither curl nor wget found. Please install one of them."
         exit 1
     fi
@@ -95,17 +152,19 @@ get_latest_version() {
     
     local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
     
-    if command -v curl >/dev/null 2>&1; then
-        LATEST_VERSION=$(curl -s "$api_url" | grep -o '"tag_name": "v[^"]*"' | cut -d'"' -f4)
-    elif command -v wget >/dev/null 2>&1; then
-        LATEST_VERSION=$(wget -qO- "$api_url" | grep -o '"tag_name": "v[^"]*"' | cut -d'"' -f4)
-    fi
-    
-    if [ -z "$LATEST_VERSION" ]; then
+    local response
+    if ! response=$(http_request "$api_url"); then
         log_error "Failed to fetch latest version. Please check your internet connection."
         exit 1
     fi
-    
+
+    LATEST_VERSION=$(echo "$response" | grep -o '"tag_name": "v[^"]*"' | cut -d'"' -f4)
+
+    if [ -z "$LATEST_VERSION" ]; then
+        log_error "Failed to determine latest version from API response."
+        exit 1
+    fi
+
     log_info "Latest version: $LATEST_VERSION"
 }
 
@@ -119,18 +178,10 @@ download_and_install() {
     log_info "URL: $download_url"
     
     # Download the archive
-    if command -v curl >/dev/null 2>&1; then
-        if ! curl -L -o "$archive_path" "$download_url"; then
-            log_error "Failed to download binary"
-            rm -rf "$temp_dir"
-            exit 1
-        fi
-    elif command -v wget >/dev/null 2>&1; then
-        if ! wget -O "$archive_path" "$download_url"; then
-            log_error "Failed to download binary"
-            rm -rf "$temp_dir"
-            exit 1
-        fi
+    if ! http_download "$download_url" "$archive_path"; then
+        log_error "Failed to download binary"
+        rm -rf "$temp_dir"
+        exit 1
     fi
     
     log_success "Download completed"
@@ -352,5 +403,6 @@ main() {
     print_usage
 }
 
-# Run main function
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

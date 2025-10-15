@@ -212,11 +212,7 @@ jobs:
   test-release:
     name: Test Release Installation
     needs: [create-release, upload-install-script]
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
 
     steps:
 
@@ -227,11 +223,33 @@ jobs:
 
       - name: Test installation from specific release
         run: |
+          set -e
+
           # Download install script from the specific release
           VERSION="${{ needs.create-release.outputs.version }}"
           echo "Downloading install script from release $VERSION..."
 
-          curl -fsSL "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh
+          CURL_OPTS=(--fail --silent --show-error --location --retry 5 --retry-delay 10 --retry-all-errors --connect-timeout 10)
+          if [ -n "$GITHUB_TOKEN" ]; then
+            CURL_OPTS+=(-H "Authorization: token $GITHUB_TOKEN")
+          fi
+
+          DOWNLOAD_SUCCESS=0
+          for i in 1 2 3 4 5; do
+            rm -f /tmp/install.sh
+            if curl "${CURL_OPTS[@]}" "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh; then
+              echo "✓ Downloaded install script"
+              DOWNLOAD_SUCCESS=1
+              break
+            fi
+            echo "Attempt $i failed, waiting $((i * 10))s..."
+            sleep $((i * 10))
+          done
+
+          if [ "$DOWNLOAD_SUCCESS" -ne 1 ]; then
+            echo "Failed to download install script after multiple attempts."
+            exit 1
+          fi
 
           # Run the install script
           bash /tmp/install.sh
@@ -240,3 +258,97 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           smt --version
           smt eval '1'
+
+  test-homebrew-installation:
+    name: Test Homebrew Installation
+    needs: [create-release, upload-install-script]
+    runs-on: macos-latest
+
+    steps:
+      - name: Wait for release assets to propagate
+        run: |
+          echo "Waiting 60 seconds for GitHub release assets to propagate..."
+          sleep 60
+
+      - name: Tap and install via Homebrew
+        run: |
+          brew tap abacusnoir/smelter
+          brew install smelter
+
+      - name: Test Homebrew installation
+        run: |
+          # Test binary works
+          smt --version
+          smt eval '(+ 2 3)'
+
+          # Verify version matches release
+          VERSION="${{ needs.create-release.outputs.version }}"
+          echo "Expected version: ${VERSION#v}"
+          smt --version
+
+      - name: Cleanup
+        if: always()
+        run: |
+          brew uninstall smelter || true
+          brew untap abacusnoir/smelter || true
+
+  test-showcase-examples:
+    name: Test Showcase Examples
+    needs: [create-release, upload-install-script]
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for release assets to propagate
+        run: |
+          echo "Waiting 60 seconds for GitHub release assets to propagate..."
+          sleep 60
+
+      - name: Install smelter (macOS via Homebrew)
+        if: runner.os == 'macOS'
+        run: |
+          brew tap abacusnoir/smelter
+          brew install smelter
+
+      - name: Install smelter (Linux via install script)
+        if: runner.os == 'Linux'
+        run: |
+          set -e
+
+          VERSION="${{ needs.create-release.outputs.version }}"
+
+          CURL_OPTS=(--fail --silent --show-error --location --retry 5 --retry-delay 10 --retry-all-errors --connect-timeout 10)
+          if [ -n "$GITHUB_TOKEN" ]; then
+            CURL_OPTS+=(-H "Authorization: token $GITHUB_TOKEN")
+          fi
+
+          DOWNLOAD_SUCCESS=0
+          for i in 1 2 3; do
+            rm -f /tmp/install.sh
+            if curl "${CURL_OPTS[@]}" "https://github.com/${{ github.repository }}/releases/download/${VERSION}/install.sh" -o /tmp/install.sh; then
+              echo "✓ Downloaded install script"
+              DOWNLOAD_SUCCESS=1
+              break
+            fi
+            echo "Attempt $i failed, waiting..."
+            sleep $((i * 10))
+          done
+
+          if [ "$DOWNLOAD_SUCCESS" -ne 1 ]; then
+            echo "Failed to download install script after multiple attempts."
+            exit 1
+          fi
+
+          bash /tmp/install.sh
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify all showcase examples work
+        run: |
+          ./test/verify-demos.sh

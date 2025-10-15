@@ -10,7 +10,7 @@ Smelter (`smt`) is a self-contained CLI runner for [Coalton](https://coalton-lan
 
 ```bash
 # Quick install
-curl -fsSL https://smelter-landing.pages.dev/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/abacusnoir/smelter/master/install.sh | bash
 
 # Run typed scripts
 smt run script.coal
@@ -40,7 +40,7 @@ smt eval '(+ 2 3)'
 
 **Quick Install (Recommended):**
 ```bash
-curl -fsSL https://smelter-landing.pages.dev/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/abacusnoir/smelter/master/install.sh | bash
 ```
 
 **Manual Installation:**
@@ -212,9 +212,9 @@ This approach gives you:
 **Build Automation** - Replace complex Makefiles with typed workflows
 **API Integration** - HTTP clients with JSON parsing built-in
 
-## 🤝 Contributing
+## 🤝 Source Code
 
-Contributions welcome! Fork the repo, make your changes with tests, run `make test-all`, and open a pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+This project is open source under the MIT License. The source code is shared for transparency and learning. Contributions will be welcomed in the future once the project stabilizes further.
 
 ## 📄 License
 
@@ -248,4 +248,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Questions?** Open an [issue](https://github.com/abacusnoir/smelter/issues) or start a [discussion](https://github.com/abacusnoir/smelter/discussions).
+**Questions?** For now, please explore the examples and documentation. Community engagement will be enabled once the project matures further.
