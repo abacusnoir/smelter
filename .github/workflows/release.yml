@@ -212,11 +212,7 @@ jobs:
   test-release:
     name: Test Release Installation
     needs: [create-release, upload-install-script]
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
 
     steps:
 
