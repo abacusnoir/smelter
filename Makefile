@@ -61,7 +61,8 @@ deps:
 build: deps
 	@echo "Building Smelter executable..."
 	@$(SBCL) --load build/create-image.lisp
-	@echo "✅ Build completed!"
+	@ln -sf smt smt-cl
+	@echo "✅ Build completed! (smt and smt-cl symlink created)"
 
 # Run tests
 test: $(TARGET)
@@ -127,7 +128,7 @@ test-all: $(TARGET)
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	@rm -f $(TARGET)
+	@rm -f $(TARGET) smt-cl
 	@rm -rf $(RELEASE_DIR)
 
 # Clean everything including cache
@@ -140,9 +141,10 @@ dev: clean build test
 
 # Install to /usr/local/bin
 install: $(TARGET)
-	@echo "Installing $(TARGET) to /usr/local/bin..."
+	@echo "Installing $(TARGET) and smt-cl to /usr/local/bin..."
 	@cp $(TARGET) /usr/local/bin/
-	@echo "✅ Installation completed!"
+	@ln -sf /usr/local/bin/smt /usr/local/bin/smt-cl
+	@echo "✅ Installation completed! (smt and smt-cl installed)"
 
 # Compress binary with UPX (optional)
 compress: $(TARGET)

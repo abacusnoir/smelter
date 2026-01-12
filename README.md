@@ -1,6 +1,6 @@
-# 🔥 Smelter - Type-safe scripting that just works
+# 🔥 Smelter - Lisp scripts that just work
 
-**The only scripting language with ML-style type inference, zero dependencies, and ~43ms startup.**
+**Type-safe Coalton or pure Common Lisp. Same binary. ~43ms startup. Zero dependencies.**
 
 [![Build Status](https://github.com/abacusnoir/smelter/workflows/Build/badge.svg)](https://github.com/abacusnoir/smelter/actions)
 [![Release](https://img.shields.io/github/v/release/abacusnoir/smelter)](https://github.com/abacusnoir/smelter/releases)
@@ -12,14 +12,15 @@ Smelter (`smt`) is a self-contained CLI runner for [Coalton](https://coalton-lan
 # Quick install
 curl -fsSL https://raw.githubusercontent.com/abacusnoir/smelter/master/install.sh | bash
 
-# Run typed scripts
+# Run type-safe Coalton scripts
 smt run script.coal
 
-# Interactive REPL
-smt repl
+# Or run pure Common Lisp
+smt cl run script.lisp
 
-# Evaluate expressions
+# Evaluate expressions (Coalton or CL)
 smt eval '(+ 2 3)'
+smt cl eval '(format nil "Hello ~A" "World")'
 ```
 
 ## ⚡ Why Smelter?
@@ -98,10 +99,23 @@ Check out `examples/showcase/` for production-ready demos:
 
 ### Commands
 
+**Coalton Mode (type-safe):**
 ```bash
 smt run <file.coal>      # Run a Coalton script
 smt eval <expression>    # Evaluate a Coalton expression
 smt repl                 # Start interactive REPL
+```
+
+**CL Mode (pure Common Lisp):**
+```bash
+smt cl run <file.lisp>   # Run a CL script
+smt cl eval <expression> # Evaluate a CL expression
+smt cl repl              # Start CL REPL
+smt-cl <file.lisp>       # Shortcut (for shebangs)
+```
+
+**General:**
+```bash
 smt --version            # Show version information
 smt --help               # Show help
 ```

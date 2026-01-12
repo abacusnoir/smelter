@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Smelter is a self-contained CLI runner for Coalton (statically-typed Lisp) that embeds SBCL and Coalton into a single executable. It provides zero-dependency scripting with type safety and fast startup times.
+Smelter is a self-contained CLI runner for Lisp that embeds SBCL and Coalton into a single executable. It provides zero-dependency scripting with **types optional** - run type-safe Coalton scripts or pure Common Lisp scripts with the same binary.
+
+**Positioning:** "Lisp scripts that just work. Types optional."
 
 ## Build System
 
@@ -35,11 +37,25 @@ The project uses Make with the following key commands:
 
 ### CLI Commands Structure
 
+**Coalton Mode (type-safe):**
+- `smt run <file.coal>` - Run Coalton scripts
+- `smt eval '<expr>'` - Evaluate Coalton expression
+- `smt repl` - Interactive Coalton REPL
+- `smt check <file.coal>` - Type-check without running
+
+**CL Mode (pure Common Lisp):**
+- `smt cl run <file.lisp>` - Run CL scripts
+- `smt cl eval '<expr>'` - Evaluate CL expression
+- `smt cl repl` - Interactive CL REPL
+
 The smelter package exports:
 - `main` - Entry point handling argument parsing
 - `run-script` - Execute .coal files with shebang support
 - `start-repl` - Interactive Coalton REPL
 - `eval-expression` - Evaluate single expressions
+- `run-cl-script` - Execute .lisp files (CL mode)
+- `eval-cl-expr` - Evaluate CL expressions
+- `run-cl-repl` - CL REPL
 - `save-executable` - Create the final binary
 
 ### Script Execution Model
@@ -84,6 +100,7 @@ make test-all            # ALL test suites (112+ tests)
 - **Stress Tests** (`make test-stress`): 14 tests for performance under load, large inputs, rapid execution, recursion depth, and memory stability
 - **Cross-Platform Tests** (`make test-cross-platform`): 24 tests for shell compatibility, locales, file permissions, path handling, exit codes, and concurrent execution
 - **Smoke Tests**: Basic CLI functionality
+- **CL Mode Tests** (`./test/test-cl-mode.sh`): 11 tests for CL mode functionality
 - **Eval Regression Tests**: Pattern matching validation
 - **JSON Regression Tests**: JSON parsing and generation
 - **Launch Verification Tests**: HN launch readiness (11 tests)
@@ -168,6 +185,7 @@ The final binary is self-contained with no runtime dependencies.
 ## Feature Documentation
 
 ### Implemented Features
+- **[CL Mode Implementation](docs/cl-mode-implementation.md)** - Pure Common Lisp mode (`smt cl run/eval/repl`) - doubles addressable market, same binary, same instant startup, types optional
 - **[Showcase Demos Achievement](docs/showcase-demos-achievement.md)** - 6 production-ready demos (19-33 lines) showcasing real-world type-safe scripting use cases - config validation, error handling, build pipelines, data transforms - all verified and HN-ready
 - **[Comprehensive Test Coverage Achievement](docs/comprehensive-test-coverage-achievement.md)** - Production-ready test coverage with 112+ tests across comprehensive, stress, and cross-platform suites - ensuring "smt scripts just work" for HN launch
 - **[Launch-Ready Achievement](docs/launch-ready-achievement.md)** - Show functions (show-int, show-bool) + 5 working launch examples + verification script - Complete HN launch readiness with 11/11 tests passing
