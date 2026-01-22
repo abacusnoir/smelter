@@ -3,9 +3,9 @@
   :author "Smelter Team"
   :license "MIT"
   :version "0.1.0"
-  :homepage "https://github.com/yourusername/smelter"
-  :bug-tracker "https://github.com/yourusername/smelter/issues"
-  :source-control (:git "https://github.com/yourusername/smelter.git")
+  :homepage "https://github.com/abacusnoir/smelter"
+  :bug-tracker "https://github.com/abacusnoir/smelter/issues"
+  :source-control (:git "https://github.com/abacusnoir/smelter.git")
 
   :depends-on (#:coalton
                #:uiop
