@@ -5,7 +5,7 @@ Thanks for your interest in improving Smelter!
 ## Getting Started
 
 ```bash
-git clone https://github.com/your-username/smelter.git
+git clone https://github.com/abacusnoir/smelter.git
 cd smelter
 make deps     # Install dependencies
 make build    # Build smelter

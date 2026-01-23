@@ -82,7 +82,7 @@ These examples show that Smelter isn't just another scripting language - it's a 
 
 Try them yourself:
 ```bash
-git clone https://github.com/yourusername/smelter
+git clone https://github.com/abacusnoir/smelter
 cd smelter
 make build
 ./test/verify-demos.sh

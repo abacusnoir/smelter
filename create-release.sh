@@ -110,7 +110,7 @@ chmod +x my-script.coal
 
 ## Learn More
 
-Visit https://github.com/yourusername/smelter for documentation and examples.
+Visit https://github.com/abacusnoir/smelter for documentation and examples.
 EOF
 
 # Create installation script
